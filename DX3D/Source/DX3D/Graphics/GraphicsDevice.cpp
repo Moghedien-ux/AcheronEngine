@@ -109,8 +109,14 @@ dx3d::ShaderBinary dx3d::GraphicsDevice::compileShader(
         }
         else
         {
-            DX3DLogError("Shader file not found. Checked candidate paths for: " +
-                std::string(filePath.begin(), filePath.end()));
+            // Convert wstring filePath safely to string for logging
+            std::string pathNarrow;
+            pathNarrow.reserve(filePath.size());
+            for (wchar_t wc : filePath)
+            {
+                pathNarrow.push_back(static_cast<char>(wc & 0x7F));
+            }
+            DX3DLogError("Shader file not found. Attempted to find shader at candidate paths for: " + pathNarrow);
         }
         DX3DGraphicsLogThrowOnFail(hr, "Shader compilation failed.");
     }

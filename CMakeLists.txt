@@ -10,17 +10,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_definitions(-DUNICODE -D_UNICODE)
 
 # ---------------------------------------------------------------------------
-# Setup ImGui from local directory (AcheronEngine/imgui) or FetchContent fallback
+# Setup ImGui from local directory (imgui)
 # ---------------------------------------------------------------------------
-set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/AcheronEngine/imgui")
+set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
 if(EXISTS "${IMGUI_DIR}/imgui.h")
     message(STATUS "Found local ImGui in: ${IMGUI_DIR}")
 
-    # Collect all ImGui cpp files in root and backends (if present)
     file(GLOB IMGUI_SOURCES
             "${IMGUI_DIR}/*.cpp"
-            "${IMGUI_DIR}/backends/*.cpp"
+            "${IMGUI_DIR}/backends/imgui_impl_win32.cpp"
+            "${IMGUI_DIR}/backends/imgui_impl_dx11.cpp"
     )
 
     add_library(imgui STATIC ${IMGUI_SOURCES})
@@ -31,29 +31,13 @@ if(EXISTS "${IMGUI_DIR}/imgui.h")
 else()
     message(STATUS "Local ImGui not found in ${IMGUI_DIR}, fetching via FetchContent...")
     include(FetchContent)
+
     FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
             GIT_TAG        v1.90.4
     )
-    FetchContent_GetProperties(imgui)
-    if(NOT imgui_POPULATED)
-        FetchContent_Populate(imgui)
-        add_library(imgui STATIC
-                ${imgui_SOURCE_DIR}/imgui.cpp
-                ${imgui_SOURCE_DIR}/imgui_draw.cpp
-                ${imgui_SOURCE_DIR}/imgui_tables.cpp
-                ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-                ${imgui_SOURCE_DIR}/imgui_demo.cpp
-                ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
-                ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
-        )
-        target_include_directories(imgui PUBLIC
-                ${imgui_SOURCE_DIR}
-                ${imgui_SOURCE_DIR}/backends
-        )
-        set(IMGUI_DIR "${imgui_SOURCE_DIR}")
-    endif()
+    FetchContent_MakeAvailable(imgui)
 endif()
 
 # Include Directories for Engine
