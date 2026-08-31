@@ -1,31 +1,37 @@
 #include <DX3D/Graphics/GraphicsPipelineState.h>
-#include <DX3D/Graphics/ShaderBinary.h>
+#include <DX3D/Graphics/GraphicsLogUtils.h>
 
-dx3d::GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc, const GraphicsResourceDesc& gDesc) :
-    GraphicsResource(gDesc)
+dx3d::GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc) :
+    GraphicsResource(desc.gResource)
 {
-    if (desc.vs.getType() != ShaderType::VertexShader)
-        DX3DLogThrowInvalidArgs("The 'vs' member is not a valid vertex shader binary.");
+    // 1. Create Vertex Shader
+    DX3DGraphicsLogThrowOnFail(
+        m_device.CreateVertexShader(desc.vsBinary.getBufferPointer(), desc.vsBinary.getBufferSize(), nullptr, &m_vs),
+        "CreateVertexShader failed."
+    );
 
-    if (desc.ps.getType() != ShaderType::PixelShader)
-        DX3DLogThrowInvalidArgs("The 'ps' member is not a valid pixel shader binary.");
+    // 2. Create Pixel Shader
+    DX3DGraphicsLogThrowOnFail(
+        m_device.CreatePixelShader(desc.psBinary.getBufferPointer(), desc.psBinary.getBufferSize(), nullptr, &m_ps),
+        "CreatePixelShader failed."
+    );
 
-    auto vs = desc.vs.getData();
-    auto ps = desc.ps.getData();
-
-    // Support Position (float3) + Color (float3) in vertex structure
-    const D3D11_INPUT_ELEMENT_DESC elements[] =
+    // 3. Create Input Layout for Vertex (Position, Normal, Color)
+    D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
-    DX3DGraphicsLogThrowOnFail(m_device.CreateInputLayout(elements, static_cast<UINT>(std::size(elements)), vs.data, vs.dataSize, &m_layout),
-        "CreateInputLayout failed.");
-
-    DX3DGraphicsLogThrowOnFail(m_device.CreateVertexShader(vs.data, vs.dataSize, nullptr, &m_vs),
-        "CreateVertexShader failed.");
-
-    DX3DGraphicsLogThrowOnFail(m_device.CreatePixelShader(ps.data, ps.dataSize, nullptr, &m_ps),
-        "CreatePixelShader failed.");
+    DX3DGraphicsLogThrowOnFail(
+        m_device.CreateInputLayout(
+            layout,
+            ARRAYSIZE(layout),
+            desc.vsBinary.getBufferPointer(),
+            desc.vsBinary.getBufferSize(),
+            &m_inputLayout
+        ),
+        "CreateInputLayout failed."
+    );
 }

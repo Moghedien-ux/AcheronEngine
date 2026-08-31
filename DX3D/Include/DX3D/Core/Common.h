@@ -1,81 +1,24 @@
 #pragma once
 #include <DX3D/Core/Core.h>
-#include <DX3D/Core/Logger.h>
-#include <DX3D/Math/Rect.h>
+#include <DX3D/Math/Vec3.h>
+#include <DX3D/Math/Vec4.h>
+#include <DX3D/Math/Mat4.h>
 
 namespace dx3d
 {
-    struct BaseDesc
+    struct Vertex
     {
-        Logger& logger;
+        Vec3 position;
+        Vec3 normal;
+        Vec3 color;
     };
 
-    struct WindowDesc
+    struct ConstantData
     {
-        BaseDesc base;
-        Rect size{};
-    };
-
-    struct DisplayDesc
-    {
-        WindowDesc window;
-        GraphicsDevice& graphicsDevice;
-    };
-
-    struct GraphicsEngineDesc
-    {
-        BaseDesc base;
-    };
-
-    struct GraphicsDeviceDesc
-    {
-        BaseDesc base;
-    };
-
-    struct SwapChainDesc
-    {
-        void* winHandle{};
-        Rect winSize{};
-    };
-
-    enum class ShaderType
-    {
-        VertexShader = 0,
-        PixelShader
-    };
-
-    struct ShaderCompileDesc
-    {
-        const char* sharedSourceName{};
-        const char* sharedSourceCode{};
-        size_t shaderCodeSourceSize{};
-        const char* shaderEntryPoint{};
-        ShaderType shaderType{};
-    };
-
-    struct ShaderBinaryData
-    {
-        const void* data;
-        size_t dataSize{};
-
-    };
-
-    struct GraphicsPipelineStateDesc
-    {
-        const ShaderBinary& vs;
-        const ShaderBinary& ps;
-    };
-
-    struct VertexBufferDesc
-    {
-        const void* vertexList{};
-        ui32 vertexListSize{};
-        ui32 vertexSize{};
-    };
-
-    struct GameDesc
-    {
-        Rect windowSize{ 1280, 720 };
-        Logger::LogLevel logLevel = Logger::LogLevel::Error;
+        Mat4 world;
+        Mat4 view;
+        Mat4 proj;
+        Vec4 customColor;
+        Vec4 highlightParams; // x: isHighlighted (1.0 or 0.0), y: custom pulse
     };
 }

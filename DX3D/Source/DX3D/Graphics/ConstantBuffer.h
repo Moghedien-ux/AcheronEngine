@@ -1,27 +1,28 @@
 #pragma once
 #include <DX3D/Graphics/GraphicsResource.h>
+#include <wrl.h>
 
 namespace dx3d
 {
+    class DeviceContext;
+
     struct ConstantBufferDesc
     {
-        const void* bufferData{};
-        ui32 bufferSize{};
+        GraphicsResourceDesc gResource;
+        u32 bufferSize{ 0 };
     };
 
     class ConstantBuffer final : public GraphicsResource
     {
     public:
-        explicit ConstantBuffer(const ConstantBufferDesc& desc, const GraphicsResourceDesc& gDesc);
-        void update(const void* bufferData, ui32 bufferSize);
+        explicit ConstantBuffer(const ConstantBufferDesc& desc);
+        virtual ~ConstantBuffer() override = default;
+
+        ID3D11Buffer* get() const { return m_buffer.Get(); }
+        void update(DeviceContext& context, const void* data);
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Buffer> m_buffer{};
-        ui32 m_size{};
-
-        friend class DeviceContext;
+        u32 m_bufferSize{ 0 };
     };
 }
-
-
-

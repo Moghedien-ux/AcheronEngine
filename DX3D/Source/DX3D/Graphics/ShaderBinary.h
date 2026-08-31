@@ -1,18 +1,19 @@
 #pragma once
-#include <DX3D/Core/Common.h>
-#include <DX3D/Graphics/GraphicsResource.h>
+#include <DX3D/Core/Core.h>
+#include <d3dcommon.h>
+#include <wrl.h>
 
 namespace dx3d
 {
-    class ShaderBinary final : public GraphicsResource
+    class ShaderBinary
     {
     public:
-        explicit ShaderBinary(const ShaderCompileDesc& desc, const GraphicsResourceDesc& gDesc);
-        ShaderBinaryData getData() const noexcept;
-        ShaderType getType() const noexcept;
+        explicit ShaderBinary(Microsoft::WRL::ComPtr<ID3DBlob> blob) : m_blob(blob) {}
+        const void* getBufferPointer() const { return m_blob ? m_blob->GetBufferPointer() : nullptr; }
+        size_t getBufferSize() const { return m_blob ? m_blob->GetBufferSize() : 0; }
+        ID3DBlob* getBlob() const { return m_blob.Get(); }
 
     private:
-        Microsoft::WRL::ComPtr<ID3DBlob> m_blob{};
-        ShaderType m_type{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_blob;
     };
 }

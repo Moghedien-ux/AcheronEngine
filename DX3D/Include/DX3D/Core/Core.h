@@ -1,45 +1,43 @@
 #pragma once
-#include <stdexcept>
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
+#include <stdexcept>
 
 namespace dx3d
 {
-    class Logger;
-    class SwapChain;
-    class DeviceContext;
+    using i8  = int8_t;
+    using i16 = int16_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
 
-    class Base;
-    class Window;
-    class Display;
-    class Game;
+    using u8  = uint8_t;
+    using u16 = uint16_t;
+    using u32 = uint32_t;
+    using u64 = uint64_t;
 
-    class GraphicsEngine;
-    class GraphicsDevice;
-    class ShaderBinary;
-    class GraphicsPipelineState;
-    class VertexBuffer;
-    class IndexBuffer;
-    class ConstantBuffer;
-
-    class Camera;
-    class InputSystem;
-
-    class GameObject;
-    class PhysicsEngine;
-    class RigidBody;
-
-    using i32 = int;
-    using ui32 = unsigned int;
     using f32 = float;
-    using d64 = double;
+    using f64 = double;
 
-    using SwapChainPtr = std::shared_ptr<SwapChain>;
-    using DeviceContextPtr = std::shared_ptr<DeviceContext>;
-    using ShaderBinaryPtr = std::shared_ptr<ShaderBinary>;
-    using GraphicsPilepineStatePtr = std::shared_ptr<GraphicsPipelineState>;
-    using VertexBufferPtr = std::shared_ptr<VertexBuffer>;
-    using IndexBufferPtr = std::shared_ptr<IndexBuffer>;
-    using ConstantBufferPtr = std::shared_ptr<ConstantBuffer>;
-    using CameraPtr = std::shared_ptr<Camera>;
-    using InputSystemPtr = std::shared_ptr<InputSystem>;
+    using usize = size_t;
+
+    struct Point
+    {
+        i32 x{ 0 };
+        i32 y{ 0 };
+    };
+
+    struct Rect
+    {
+        i32 width{ 0 };
+        i32 height{ 0 };
+    };
+
+    class DX3DException : public std::runtime_error
+    {
+    public:
+        explicit DX3DException(const char* msg) : std::runtime_error(msg) {}
+        explicit DX3DException(const std::string& msg) : std::runtime_error(msg) {}
+    };
 }

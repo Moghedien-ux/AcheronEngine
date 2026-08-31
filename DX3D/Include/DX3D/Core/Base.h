@@ -1,38 +1,24 @@
 #pragma once
-#include <DX3D/Core/Common.h>
-
+#include <DX3D/Core/Core.h>
+#include <DX3D/Core/Logger.h>
 
 namespace dx3d
 {
+    struct BaseDesc
+    {
+        Logger& logger;
+    };
+
     class Base
     {
     public:
-        explicit Base(const BaseDesc& desc);
-        virtual ~Base();
-        virtual Logger& getLogger() noexcept final;
+        explicit Base(const BaseDesc& desc) : m_logger(desc.logger) {}
+        virtual ~Base() = default;
 
-    protected:
         Base(const Base&) = delete;
-        Base(Base&&) = delete;
-        Base& operator = (const Base&) = delete;
-        Base& operator=(Base&&) = delete;
+        Base& operator=(const Base&) = delete;
 
     protected:
         Logger& m_logger;
     };
 }
-
-#define DX3DLogError(message)\
-	DX3DLog(getLogger(), Logger::LogLevel::Error, message);
-
-#define DX3DLogInfo(message)\
-	DX3DLog(getLogger(), Logger::LogLevel::Info, message);
-
-#define DX3DLogWarning(message)\
-	DX3DLog(getLogger(), Logger::LogLevel::Warning, message);
-
-#define DX3DLogThrowError(message)\
-	DX3DLogThrow(getLogger(), std::runtime_error, Logger::LogLevel::Error, message);
-
-#define DX3DLogThrowInvalidArgs(message)\
-	DX3DLogThrow(getLogger(), std::invalid_argument, Logger::LogLevel::Error, message);

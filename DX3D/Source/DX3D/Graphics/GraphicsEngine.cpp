@@ -1,185 +1,147 @@
-#include <DX3D/Graphics/GraphicsDevice.h>
 #include <DX3D/Graphics/GraphicsEngine.h>
 #include <DX3D/Graphics/DeviceContext.h>
 #include <DX3D/Graphics/SwapChain.h>
-#include <DX3D/Graphics/VertexBuffer.h>
-#include <DX3D/Graphics/IndexBuffer.h>
-#include <DX3D/Graphics/ConstantBuffer.h>
-#include <DX3D/Graphics/GraphicsPipelineState.h>
-#include <DX3D/Graphics/ShaderBinary.h>
-#include <DX3D/Camera/Camera.h>
+#include <DX3D/Core/Common.h>
 
-using namespace dx3d;
-
-dx3d::GraphicsEngine::GraphicsEngine(const GraphicsEngineDesc& desc) : Base(desc.base)
+dx3d::GraphicsEngine::GraphicsEngine(const GraphicsEngineDesc& desc) :
+    Base(desc.base)
 {
-	m_graphicsDevice = std::make_shared<GraphicsDevice>(GraphicsDeviceDesc{ m_logger });
+    m_graphicsDevice = std::make_unique<GraphicsDevice>(GraphicsDeviceDesc{ desc.base });
+    createCubeGeometry();
+    createPipeline();
 
-	auto& device = *m_graphicsDevice;
-	m_deviceContext = device.createDeviceContext();
+    m_constantBuffer = std::make_unique<ConstantBuffer>(ConstantBufferDesc{
+        { desc.base, m_graphicsDevice->getD3DDevice() },
+        sizeof(ConstantData)
+    });
 
-	// HLSL Shader code with MVP matrix constant buffer
-	constexpr char shaderSourceCode[] =
-		R"(
-cbuffer ConstantData : register(b0)
-{
-	row_major float4x4 m_world;
-	row_major float4x4 m_view;
-	row_major float4x4 m_proj;
-};
-
-struct VS_INPUT
-{
-	float3 pos : POSITION;
-	float3 color : COLOR;
-};
-
-struct PS_INPUT
-{
-	float4 pos : SV_Position;
-	float3 color : COLOR;
-};
-
-PS_INPUT VSMain(VS_INPUT input)
-{
-	PS_INPUT output;
-	float4 worldPos = mul(float4(input.pos, 1.0f), m_world);
-	float4 viewPos  = mul(worldPos, m_view);
-	output.pos      = mul(viewPos, m_proj);
-	output.color    = input.color;
-	return output;
+    m_highlightPass = std::make_unique<HighlightPass>(GraphicsResourceDesc{
+        desc.base,
+        m_graphicsDevice->getD3DDevice()
+    });
 }
 
-float4 PSMain(PS_INPUT input) : SV_Target
+void dx3d::GraphicsEngine::createCubeGeometry()
 {
-	return float4(input.color, 1.0f);
-}
-)";
+    // Standard 1x1x1 cube vertex data with per-face normals
+    Vertex vertices[] = {
+        // Front Face (Z = -0.5)
+        { { -0.5f, -0.5f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f,  0.5f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } },
 
-	constexpr char shaderSourceName[] = "CubeShader";
-	constexpr auto shaderSourceCodeSize = std::size(shaderSourceCode);
+        // Back Face (Z = +0.5)
+        { {  0.5f, -0.5f,  0.5f }, {  0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, {  0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f,  0.5f,  0.5f }, {  0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f, -0.5f,  0.5f }, {  0.0f,  0.0f,  1.0f }, { 1.0f, 1.0f, 1.0f } },
 
-	auto vs = device.compileShader({ shaderSourceName, shaderSourceCode, shaderSourceCodeSize,
-		"VSMain", ShaderType::VertexShader });
-	auto ps = device.compileShader({ shaderSourceName, shaderSourceCode, shaderSourceCodeSize,
-		"PSMain", ShaderType::PixelShader });
+        // Top Face (Y = +0.5)
+        { { -0.5f,  0.5f, -0.5f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f,  0.5f,  0.5f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f, -0.5f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
 
-	m_pipeline = device.createGraphicsPipelineState({ *vs, *ps });
+        // Bottom Face (Y = -0.5)
+        { { -0.5f, -0.5f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f, -0.5f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
 
-	// 8 Unique Vertices for the 3D Cube (Position + Color)
-	const Vertex vertexList[] =
-	{
-		// Front face
-		{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } }, // 0: Red
-		{ { -0.5f,  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } }, // 1: Green
-		{ {  0.5f,  0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f } }, // 2: Blue
-		{ {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f } }, // 3: Yellow
+        // Left Face (X = -0.5)
+        { { -0.5f, -0.5f,  0.5f }, { -1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f,  0.5f,  0.5f }, { -1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f,  0.5f, -0.5f }, { -1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { { -0.5f, -0.5f, -0.5f }, { -1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
 
-		// Back face
-		{ {  0.5f, -0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f } }, // 4: Magenta
-		{ {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 1.0f } }, // 5: Cyan
-		{ { -0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } }, // 6: White
-		{ { -0.5f, -0.5f,  0.5f }, { 0.2f, 0.2f, 0.2f } }, // 7: Dark Gray
-	};
+        // Right Face (X = +0.5)
+        { {  0.5f, -0.5f, -0.5f }, {  1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f, -0.5f }, {  1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f,  0.5f,  0.5f }, {  1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+        { {  0.5f, -0.5f,  0.5f }, {  1.0f,  0.0f,  0.0f }, { 1.0f, 1.0f, 1.0f } },
+    };
 
-	m_vb = device.createVertexBuffer({ vertexList, static_cast<ui32>(std::size(vertexList)), sizeof(Vertex) });
+    u32 indices[] = {
+        0, 1, 2, 0, 2, 3,       // Front
+        4, 5, 6, 4, 6, 7,       // Back
+        8, 9, 10, 8, 10, 11,    // Top
+        12, 13, 14, 12, 14, 15, // Bottom
+        16, 17, 18, 16, 18, 19, // Left
+        20, 21, 22, 20, 22, 23  // Right
+    };
 
-	// 36 Indices (12 triangles, 2 per each of the 6 cube faces)
-	const ui32 indexList[] =
-	{
-		// Front
-		0, 1, 2,  0, 2, 3,
-		// Right
-		3, 2, 5,  3, 5, 4,
-		// Back
-		4, 5, 6,  4, 6, 7,
-		// Left
-		7, 6, 1,  7, 1, 0,
-		// Top
-		1, 6, 5,  1, 5, 2,
-		// Bottom
-		7, 0, 3,  7, 3, 4
-	};
+    m_cubeVB = std::make_unique<VertexBuffer>(VertexBufferDesc{
+        { BaseDesc{ m_logger }, m_graphicsDevice->getD3DDevice() },
+        vertices,
+        sizeof(Vertex),
+        24
+    });
 
-	m_ib = device.createIndexBuffer({ indexList, static_cast<ui32>(std::size(indexList)) });
-
-	// Constant Buffer for matrices
-	ConstantData cData{};
-	m_cb = device.createConstantBuffer({ &cData, sizeof(ConstantData) });
-}
-
-dx3d::GraphicsEngine::~GraphicsEngine()
-{}
-
-GraphicsDevice& dx3d::GraphicsEngine::getGraphicsDevice() noexcept
-{
-	return *m_graphicsDevice;
+    m_cubeIB = std::make_unique<IndexBuffer>(IndexBufferDesc{
+        { BaseDesc{ m_logger }, m_graphicsDevice->getD3DDevice() },
+        indices,
+        36
+    });
 }
 
-void dx3d::GraphicsEngine::render(SwapChain& swapChain, const Camera& camera, f32 cubeRotation)
+void dx3d::GraphicsEngine::createPipeline()
 {
-	auto& context = *m_deviceContext;
+    // Try to load shader from Shaders/CubeShader.hlsl or DX3D/Shaders/CubeShader.hlsl
+    ShaderBinary vs = m_graphicsDevice->compileShader(L"DX3D/Shaders/CubeShader.hlsl", "VSMain", "vs_5_0");
+    ShaderBinary ps = m_graphicsDevice->compileShader(L"DX3D/Shaders/CubeShader.hlsl", "PSMain", "ps_5_0");
 
-	// Dark slate blue background
-	context.clearAndSetBackBuffer(swapChain, { 0.1f, 0.12f, 0.16f, 1.0f });
-	context.setGraphicsPipelineState(*m_pipeline);
-	context.setViewportSize(swapChain.getSize());
-
-	// Compute MVP transformation matrices
-	ConstantData cData;
-	Mat4 rotY = Mat4::RotationY(cubeRotation);
-	Mat4 rotX = Mat4::RotationX(cubeRotation * 0.5f);
-	cData.world = rotX * rotY;
-	cData.view = camera.getViewMatrix();
-	cData.proj = camera.getProjectionMatrix();
-
-	// Update constant buffer and bind to shader slot 0
-	m_cb->update(&cData, sizeof(ConstantData));
-	context.setConstantBuffer(*m_cb, 0);
-
-	// Bind Vertex & Index Buffers
-	context.setVertexBuffer(*m_vb);
-	context.setIndexBuffer(*m_ib);
-
-	// Draw the 36 indices of the 3D cube
-	context.drawIndexedTriangleList(m_ib->getIndexListSize(), 0, 0);
-
-	auto& device = *m_graphicsDevice;
-	device.executeCommandList(context);
-	swapChain.present();
+    m_pipelineState = std::make_shared<GraphicsPipelineState>(GraphicsPipelineStateDesc{
+        { BaseDesc{ m_logger }, m_graphicsDevice->getD3DDevice() },
+        vs,
+        ps
+    });
 }
 
-// ==========================================
-// În DX3D/Source/GraphicsEngine.cpp:
-// ==========================================
-void dx3d::GraphicsEngine::renderObjects(SwapChain& swapChain, const Camera& camera, const std::vector<GameObjectPtr>& objects)
+void dx3d::GraphicsEngine::renderObjects(
+    SwapChain& swapChain,
+    const Camera& camera,
+    const std::vector<GameObjectPtr>& objects,
+    GameObject* selectedObject)
 {
-	auto& context = *m_deviceContext;
+    DeviceContext& context = m_graphicsDevice->getDeviceContext();
 
-	// Background slate-blue
-	context.clearAndSetBackBuffer(swapChain, { 0.08f, 0.10f, 0.14f, 1.0f });
-	context.setGraphicsPipelineState(*m_pipeline);
-	context.setViewportSize(swapChain.getSize());
+    // Clear Screen (Unreal Slate background #18191c)
+    swapChain.clear(context, 0.09f, 0.10f, 0.12f, 1.0f);
+    context.setViewport(swapChain.getSize());
+    context.setPipelineState(*m_pipelineState);
 
-	context.setVertexBuffer(*m_vb);
-	context.setIndexBuffer(*m_ib);
+    // 1. Draw solid scene objects
+    for (const auto& obj : objects)
+    {
+        if (!obj || !obj->m_active) continue;
 
-	ConstantData cData;
-	cData.view = camera.getViewMatrix();
-	cData.proj = camera.getProjectionMatrix();
+        ConstantData cData{};
+        cData.world = obj->getWorldMatrix();
+        cData.view = camera.getViewMatrix();
+        cData.proj = camera.getProjectionMatrix();
+        cData.customColor = { obj->m_color.x, obj->m_color.y, obj->m_color.z, 1.0f };
+        cData.highlightParams = { (selectedObject == obj.get()) ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
 
-	for (const auto& obj : objects)
-	{
-		if (!obj || !obj->m_active) continue;
+        m_constantBuffer->update(context, &cData);
 
-		cData.world = obj->getWorldMatrix();
-		m_cb->update(&cData, sizeof(ConstantData));
-		context.setConstantBuffer(*m_cb, 0);
+        context.setVertexBuffer(*m_cubeVB);
+        context.setIndexBuffer(*m_cubeIB);
+        context.setConstantBuffer(*m_constantBuffer, 0);
 
-		context.drawIndexedTriangleList(m_ib->getIndexListSize(), 0, 0);
-	}
+        context.drawIndexed(m_cubeIB->getIndexCount());
+    }
 
-	auto& device = *m_graphicsDevice;
-	device.executeCommandList(context);
-	swapChain.present();
+    // 2. Draw selection highlight cage if an actor is selected
+    if (selectedObject && selectedObject->m_active && m_highlightPass)
+    {
+        m_highlightPass->renderHighlight(
+            context,
+            camera,
+            *selectedObject,
+            *m_constantBuffer,
+            *m_cubeVB,
+            *m_cubeIB
+        );
+    }
 }

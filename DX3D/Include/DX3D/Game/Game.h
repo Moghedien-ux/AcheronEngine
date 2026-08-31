@@ -1,6 +1,3 @@
-// ==========================================
-// Fișier: DX3D/Game/Game.h
-// ==========================================
 #pragma once
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
@@ -8,11 +5,23 @@
 #include <DX3D/Input/InputSystem.h>
 #include <DX3D/Physics/PhysicsEngine.h>
 #include <DX3D/Physics/GameObject.h>
+#include <DX3D/UI/ImGuiLayer.h>
+#include <DX3D/UI/DetailsPanel.h>
+#include <DX3D/UI/WorldOutliner.h>
 #include <vector>
 #include <chrono>
 
 namespace dx3d
 {
+    class GraphicsEngine;
+    class Display;
+
+    struct GameDesc
+    {
+        Rect windowSize{ 1440, 850 };
+        Logger::LogLevel logLevel{ Logger::LogLevel::Info };
+    };
+
     class Game : public Base
     {
     public:
@@ -21,9 +30,17 @@ namespace dx3d
 
         virtual void run() final;
 
+        void spawnCube(const Vec3& pos, const Vec3& scale, f32 mass, bool useGravity, const Vec3& color);
+        void selectObject(GameObjectPtr obj);
+        GameObjectPtr getSelectedObject() const { return m_selectedObject; }
+        std::vector<GameObjectPtr>& getGameObjects() { return m_gameObjects; }
+
+        void setSimulating(bool sim) { m_isSimulating = sim; }
+        bool isSimulating() const { return m_isSimulating; }
+
     private:
         void onInternalUpdate(f32 deltaTime);
-        void spawnCube(const Vec3& pos, const Vec3& scale, f32 mass, bool useGravity, const Vec3& color);
+        void handleObjectPicking();
 
     private:
         std::unique_ptr<Logger> m_loggerPtr{};
@@ -33,10 +50,17 @@ namespace dx3d
         std::unique_ptr<Camera> m_camera{};
         std::unique_ptr<PhysicsEngine> m_physicsEngine{};
 
+        // UI & Editor Subsystems
+        std::unique_ptr<ImGuiLayer> m_imguiLayer{};
+        std::unique_ptr<DetailsPanel> m_detailsPanel{};
+        std::unique_ptr<WorldOutliner> m_worldOutliner{};
+
         std::vector<GameObjectPtr> m_gameObjects;
         GameObjectPtr m_selectedObject{};
 
         std::chrono::high_resolution_clock::time_point m_lastTime{};
         bool m_isRunning{ true };
+        bool m_isSimulating{ true };
+        Rect m_windowSize{ 1440, 850 };
     };
 }

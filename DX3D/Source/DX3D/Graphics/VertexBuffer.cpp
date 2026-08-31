@@ -1,24 +1,22 @@
 #include <DX3D/Graphics/VertexBuffer.h>
+#include <DX3D/Graphics/GraphicsLogUtils.h>
 
-dx3d::VertexBuffer::VertexBuffer(const VertexBufferDesc& desc, const GraphicsResourceDesc& gDesc) :
-    GraphicsResource(gDesc), m_vertexSize(desc.vertexSize), m_vertexListSize(desc.vertexListSize)
+dx3d::VertexBuffer::VertexBuffer(const VertexBufferDesc& desc) :
+    GraphicsResource(desc.gResource),
+    m_vertexSize(desc.vertexSize),
+    m_vertexCount(desc.vertexCount)
 {
-    if (!desc.vertexList) DX3DLogThrowInvalidArgs("No vertex list provided.");
-    if (!desc.vertexListSize) DX3DLogThrowInvalidArgs("No vertex list size provided.");
-    if (!desc.vertexSize) DX3DLogThrowInvalidArgs("No vertex size provided.");
-
-    D3D11_BUFFER_DESC buffDesc{};
-    buffDesc.ByteWidth = desc.vertexListSize * desc.vertexSize;
-    buffDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    D3D11_BUFFER_DESC bDesc{};
+    bDesc.Usage = D3D11_USAGE_DEFAULT;
+    bDesc.ByteWidth = desc.vertexSize * desc.vertexCount;
+    bDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bDesc.CPUAccessFlags = 0;
 
     D3D11_SUBRESOURCE_DATA initData{};
-    initData.pSysMem = desc.vertexList;
+    initData.pSysMem = desc.dataList;
 
-    DX3DGraphicsLogThrowOnFail(m_device.CreateBuffer(&buffDesc, &initData, &m_buffer),
-        "CreateBuffer failed.");
-}
-
-dx3d::ui32 dx3d::VertexBuffer::getVertexListSize() const noexcept
-{
-    return m_vertexListSize;
+    DX3DGraphicsLogThrowOnFail(
+        m_device.CreateBuffer(&bDesc, &initData, &m_buffer),
+        "CreateBuffer for VertexBuffer failed."
+    );
 }

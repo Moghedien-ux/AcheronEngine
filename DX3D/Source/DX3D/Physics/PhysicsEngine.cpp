@@ -1,23 +1,27 @@
 #include <DX3D/Physics/PhysicsEngine.h>
 #include <DX3D/Physics/RigidBody.h>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 dx3d::PhysicsEngine::PhysicsEngine(const PhysicsEngineDesc& desc) :
     Base(desc.base),
     m_gravity(desc.gravity),
-    m_enableGround(desc.enableGround),
-    m_groundHeight(desc.groundHeight)
-{}
+    m_enableGroundPlane(desc.enableGroundPlane),
+    m_groundY(desc.groundY)
+{
+}
 
 void dx3d::PhysicsEngine::addObject(GameObjectPtr obj)
 {
-    if (obj) m_objects.push_back(obj);
+    if (obj)
+    {
+        m_objects.push_back(obj);
+    }
 }
 
-void dx3d::PhysicsEngine::removeObject(GameObject* obj)
+void dx3d::PhysicsEngine::removeObject(GameObjectPtr obj)
 {
-    std::erase_if(m_objects, [obj](const GameObjectPtr& ptr) { return ptr.get() == obj; });
+    std::erase(m_objects, obj);
 }
 
 void dx3d::PhysicsEngine::clear()
@@ -25,152 +29,148 @@ void dx3d::PhysicsEngine::clear()
     m_objects.clear();
 }
 
-void dx3d::PhysicsEngine::update(f32 deltaTime)
+void dx3d::PhysicsEngine::resolveGroundCollision(GameObject& obj)
 {
-    f32 clampedDt = (std::min)(deltaTime, 0.1f);
-    ui32 steps = (std::max)(1u, m_subSteps);
-    f32 subDt = clampedDt / static_cast<f32>(steps);
+    auto& rb = obj.m_rigidBody;
+    if (!rb || rb->m_isStatic) return;
 
-    for (ui32 s = 0; s < steps; ++s)
+    f32 halfHeight = obj.m_scale.y * 0.5f;
+    f32 bottomY = obj.m_position.y - halfHeight;
+
+    if (bottomY < m_groundY)
     {
-        subStep(subDt);
-    }
-}
+        // Positional correction
+        obj.m_position.y = m_groundY + halfHeight;
 
-void dx3d::PhysicsEngine::subStep(f32 dt)
-{
-    // 1. Aplicare gravitație (doar dacă toggle-ul de gravitație e activ pe corp)
-    for (auto& obj : m_objects)
-    {
-        if (!obj || !obj->m_active) continue;
-        auto& rb = obj->m_rigidBody;
-        if (!rb || rb->m_isStatic) continue;
-
-        if (rb->m_useGravity)
-        {
-            // F = m * g (forța este direct proporțională cu masa)
-            rb->applyForce(m_gravity * rb->m_mass);
-        }
-    }
-
-    // 2. Coliziuni cu Solul
-    if (m_enableGround)
-    {
-        for (auto& obj : m_objects)
-        {
-            if (obj && obj->m_active && obj->m_rigidBody && !obj->m_rigidBody->m_isStatic)
-            {
-                resolveGroundCollision(obj.get(), dt);
-            }
-        }
-    }
-
-    // 3. Coliziuni Cub - Cub (OBB / AABB simplificat)
-    for (size_t i = 0; i < m_objects.size(); ++i)
-    {
-        for (size_t j = i + 1; j < m_objects.size(); ++j)
-        {
-            auto& a = m_objects[i];
-            auto& b = m_objects[j];
-            if (!a || !b || !a->m_active || !b->m_active) continue;
-            if (a->m_rigidBody->m_isStatic && b->m_rigidBody->m_isStatic) continue;
-
-            resolveBoxCollision(a.get(), b.get(), dt);
-        }
-    }
-
-    // 4. Integrare numerică a poziției și rotației
-    for (auto& obj : m_objects)
-    {
-        if (obj && obj->m_active && obj->m_rigidBody)
-        {
-            obj->m_rigidBody->integrate(dt);
-        }
-    }
-}
-
-void dx3d::PhysicsEngine::resolveGroundCollision(GameObject* obj, f32 dt)
-{
-    auto& rb = obj->m_rigidBody;
-    f32 halfY = obj->m_scale.y * 0.5f;
-    f32 bottomY = obj->m_position.y - halfY;
-
-    if (bottomY < m_groundHeight)
-    {
-        f32 penetration = m_groundHeight - bottomY;
-
-        // Corecție de poziție împotriva pătrunderii în sol
-        obj->m_position.y += penetration;
-
-        // Reacțiune la contact (restituție)
+        // Bounce response
         if (rb->m_velocity.y < 0.0f)
         {
-            f32 restitution = (std::min)(rb->m_restitution, m_groundRestitution);
-            rb->m_velocity.y = -rb->m_velocity.y * restitution;
+            if (std::abs(rb->m_velocity.y) < 0.2f)
+            {
+                rb->m_velocity.y = 0.0f; // Resting contact
+            }
+            else
+            {
+                rb->m_velocity.y = -rb->m_velocity.y * rb->m_restitution;
+            }
 
-            // Frecare orizontală
-            f32 friction = (std::min)(rb->m_friction, m_groundFriction);
-            f32 frictionFactor = (std::max)(0.0f, 1.0f - friction * 10.0f * dt);
-            rb->m_velocity.x *= frictionFactor;
-            rb->m_velocity.z *= frictionFactor;
+            // Ground friction damping
+            rb->m_velocity.x *= (1.0f - rb->m_friction * 0.1f);
+            rb->m_velocity.z *= (1.0f - rb->m_friction * 0.1f);
+            rb->m_angularVelocity *= 0.95f;
         }
     }
 }
 
-void dx3d::PhysicsEngine::resolveBoxCollision(GameObject* a, GameObject* b, f32 dt)
+void dx3d::PhysicsEngine::resolveObjectToBoxCollision(GameObject& a, GameObject& b)
 {
-    Vec3 diff = b->m_position - a->m_position;
-    f32 minX = (a->m_scale.x + b->m_scale.x) * 0.5f;
-    f32 minY = (a->m_scale.y + b->m_scale.y) * 0.5f;
-    f32 minZ = (a->m_scale.z + b->m_scale.z) * 0.5f;
+    auto& rba = a.m_rigidBody;
+    auto& rbb = b.m_rigidBody;
 
-    f32 overlapX = minX - std::abs(diff.x);
-    f32 overlapY = minY - std::abs(diff.y);
-    f32 overlapZ = minZ - std::abs(diff.z);
+    if (!rba || !rbb) return;
+    if (rba->m_isStatic && rbb->m_isStatic) return;
 
-    if (overlapX > 0.0f && overlapY > 0.0f && overlapZ > 0.0f)
+    Vec3 halfA = a.m_scale * 0.5f;
+    Vec3 halfB = b.m_scale * 0.5f;
+
+    Vec3 delta = b.m_position - a.m_position;
+    Vec3 overlap = {
+        (halfA.x + halfB.x) - std::abs(delta.x),
+        (halfA.y + halfB.y) - std::abs(delta.y),
+        (halfA.z + halfB.z) - std::abs(delta.z)
+    };
+
+    if (overlap.x > 0.0f && overlap.y > 0.0f && overlap.z > 0.0f)
     {
+        // Collision detected along minimum penetration axis
         Vec3 normal{ 0.0f, 1.0f, 0.0f };
-        f32 penetration = overlapY;
+        f32 minOverlap = overlap.y;
 
-        if (overlapX < overlapY && overlapX < overlapZ)
+        if (overlap.x < minOverlap)
         {
-            normal = { diff.x > 0 ? 1.0f : -1.0f, 0.0f, 0.0f };
-            penetration = overlapX;
+            minOverlap = overlap.x;
+            normal = { delta.x > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f };
         }
-        else if (overlapZ < overlapY && overlapZ < overlapX)
+        if (overlap.z < minOverlap)
         {
-            normal = { 0.0f, 0.0f, diff.z > 0 ? 1.0f : -1.0f };
-            penetration = overlapZ;
+            minOverlap = overlap.z;
+            normal = { 0.0f, 0.0f, delta.z > 0.0f ? 1.0f : -1.0f };
         }
-        else
+        if (minOverlap == overlap.y)
         {
-            normal = { 0.0f, diff.y > 0 ? 1.0f : -1.0f, 0.0f };
-            penetration = overlapY;
+            normal = { 0.0f, delta.y > 0.0f ? 1.0f : -1.0f, 0.0f };
         }
 
-        auto& rbA = a->m_rigidBody;
-        auto& rbB = b->m_rigidBody;
+        // Positional correction
+        f32 totalInvMass = rba->m_invMass + rbb->m_invMass;
+        if (totalInvMass > 1e-6f)
+        {
+            Vec3 separation = normal * (minOverlap / totalInvMass);
+            if (!rba->m_isStatic) a.m_position -= separation * rba->m_invMass;
+            if (!rbb->m_isStatic) b.m_position += separation * rbb->m_invMass;
+        }
 
-        Vec3 relVel = rbB->m_velocity - rbA->m_velocity;
-        f32 normalVel = Vec3::dot(relVel, normal);
-        if (normalVel > 0.0f) return;
+        // Relative velocity
+        Vec3 relVel = rbb->m_velocity - rba->m_velocity;
+        f32 velAlongNormal = Vec3::dot(relVel, normal);
 
-        f32 e = (std::min)(rbA->m_restitution, rbB->m_restitution);
-        f32 totalInvMass = rbA->m_invMass + rbB->m_invMass;
-        if (totalInvMass <= 0.0f) return;
+        if (velAlongNormal < 0.0f)
+        {
+            f32 e = (rba->m_restitution + rbb->m_restitution) * 0.5f;
+            f32 j = -(1.0f + e) * velAlongNormal / totalInvMass;
+            Vec3 impulse = normal * j;
 
-        // Impuls normal
-        f32 j = -(1.0f + e) * normalVel / totalInvMass;
-        Vec3 impulse = normal * j;
+            if (!rba->m_isStatic) rba->applyImpulse(impulse * -1.0f);
+            if (!rbb->m_isStatic) rbb->applyImpulse(impulse);
+        }
+    }
+}
 
-        rbA->applyImpulse(impulse * -1.0f);
-        rbB->applyImpulse(impulse);
+void dx3d::PhysicsEngine::update(f32 deltaTime)
+{
+    // Fixed sub-stepping for stability
+    const i32 subSteps = 4;
+    const f32 subDt = std::clamp(deltaTime, 0.001f, 0.05f) / static_cast<f32>(subSteps);
 
-        // Corecție Baumgarte pentru separare
-        f32 percent = 0.5f;
-        Vec3 correction = normal * (penetration * percent / totalInvMass);
-        if (!rbA->m_isStatic) a->m_position -= correction * rbA->m_invMass;
-        if (!rbB->m_isStatic) b->m_position += correction * rbB->m_invMass;
+    for (i32 step = 0; step < subSteps; ++step)
+    {
+        // 1. Apply gravity and integrate velocities
+        for (auto& obj : m_objects)
+        {
+            if (!obj || !obj->m_active) continue;
+            auto& rb = obj->m_rigidBody;
+            if (rb && !rb->m_isStatic)
+            {
+                if (rb->m_useGravity)
+                {
+                    rb->applyForce(m_gravity * rb->m_mass);
+                }
+                rb->integrate(subDt);
+            }
+        }
+
+        // 2. Resolve Ground Plane Collisions
+        if (m_enableGroundPlane)
+        {
+            for (auto& obj : m_objects)
+            {
+                if (obj && obj->m_active)
+                {
+                    resolveGroundCollision(*obj);
+                }
+            }
+        }
+
+        // 3. Resolve Box-to-Box Pairwise Collisions
+        for (size_t i = 0; i < m_objects.size(); ++i)
+        {
+            for (size_t j = i + 1; j < m_objects.size(); ++j)
+            {
+                if (m_objects[i] && m_objects[j])
+                {
+                    resolveObjectToBoxCollision(*m_objects[i], *m_objects[j]);
+                }
+            }
+        }
     }
 }

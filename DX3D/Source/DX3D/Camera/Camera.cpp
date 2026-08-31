@@ -1,72 +1,71 @@
 #include <DX3D/Camera/Camera.h>
+#include <DX3D/Input/InputSystem.h>
 #include <algorithm>
+#include <cmath>
+
+using namespace dx3d;
 
 dx3d::Camera::Camera(const Vec3& position) : m_position(position)
 {
-	setPerspective(m_fov, m_aspect, m_nearZ, m_farZ);
+    setPerspective(1.0472f, 16.0f / 9.0f, 0.1f, 1000.0f);
 }
 
-void dx3d::Camera::setPerspective(f32 fovRad, f32 aspectRatio, f32 nearZ, f32 farZ)
+void dx3d::Camera::setPerspective(f32 fovRadians, f32 aspect, f32 nearZ, f32 farZ)
 {
-	m_fov = fovRad;
-	m_aspect = aspectRatio;
-	m_nearZ = nearZ;
-	m_farZ = farZ;
-	m_projectionMatrix = Mat4::PerspectiveFovLH(fovRad, aspectRatio, nearZ, farZ);
+    m_projMatrix = Mat4::PerspectiveLH(fovRadians, aspect, nearZ, farZ);
+}
+
+Vec3 dx3d::Camera::getForward() const
+{
+    f32 cosPitch = std::cos(m_pitch);
+    f32 sinPitch = std::sin(m_pitch);
+    f32 cosYaw   = std::cos(m_yaw);
+    f32 sinYaw   = std::sin(m_yaw);
+
+    // Left-handed coordinate system (+Z forward, +X right, +Y up)
+    return Vec3{ sinYaw * cosPitch, sinPitch, cosYaw * cosPitch }.normalized();
+}
+
+Vec3 dx3d::Camera::getRight() const
+{
+    Vec3 fwd = getForward();
+    return Vec3::cross({ 0.0f, 1.0f, 0.0f }, fwd).normalized();
+}
+
+Vec3 dx3d::Camera::getUp() const
+{
+    return Vec3::cross(getForward(), getRight()).normalized();
+}
+
+Mat4 dx3d::Camera::getViewMatrix() const
+{
+    Vec3 fwd = getForward();
+    Vec3 target = m_position + fwd;
+    return Mat4::LookAtLH(m_position, target, { 0.0f, 1.0f, 0.0f });
 }
 
 void dx3d::Camera::update(const InputSystem& input, f32 deltaTime)
 {
-	// Mouse rotation (Right mouse button drag or free look)
-	if (input.isMouseButtonDown(1) || input.isMouseButtonDown(0))
-	{
-		Point delta = input.getMouseDelta();
-		m_yaw += delta.x * m_mouseSensitivity;
-		m_pitch -= delta.y * m_mouseSensitivity;
+    // Mouse Look when Right-Click held down (Unreal Engine viewport standard)
+    if (input.isMouseButtonDown(1))
+    {
+        Point delta = input.getMouseDelta();
+        m_yaw += delta.x * m_lookSensitivity;
+        m_pitch -= delta.y * m_lookSensitivity;
 
-		// Clamp pitch to avoid gimbal flipping (-89 to +89 degrees)
-		constexpr f32 maxPitch = 1.55f; // ~89 deg in radians
-		m_pitch = std::clamp(m_pitch, -maxPitch, maxPitch);
-	}
+        // Clamp pitch to avoid gimbal flip
+        m_pitch = std::clamp(m_pitch, -1.55f, 1.55f);
+    }
 
-	// Calculate forward, right, and up vectors from yaw & pitch
-	Vec3 forward{
-		std::cos(m_pitch) * std::sin(m_yaw),
-		-std::sin(m_pitch),
-		std::cos(m_pitch) * std::cos(m_yaw)
-	};
-	forward = forward.normalized();
+    // WASD Movement
+    Vec3 fwd = getForward();
+    Vec3 right = getRight();
+    f32 speed = m_moveSpeed * deltaTime;
 
-	Vec3 worldUp{ 0.0f, 1.0f, 0.0f };
-	Vec3 right = Vec3::cross(worldUp, forward).normalized();
-	Vec3 up = Vec3::cross(forward, right).normalized();
-
-	f32 speed = m_moveSpeed * deltaTime;
-	if (input.isKeyDown(VK_SHIFT)) speed *= 2.0f; // Sprint
-
-	// Keyboard Movement: WASD + Space/Q (Up/Down)
-	if (input.isKeyDown('W')) m_position += forward * speed;
-	if (input.isKeyDown('S')) m_position -= forward * speed;
-	if (input.isKeyDown('D')) m_position += right * speed;
-	if (input.isKeyDown('A')) m_position -= right * speed;
-	if (input.isKeyDown(VK_SPACE) || input.isKeyDown('E')) m_position += worldUp * speed;
-	if (input.isKeyDown('Q') || input.isKeyDown(VK_CONTROL)) m_position -= worldUp * speed;
-}
-
-dx3d::Mat4 dx3d::Camera::getViewMatrix() const
-{
-	Vec3 forward{
-		std::cos(m_pitch) * std::sin(m_yaw),
-		-std::sin(m_pitch),
-		std::cos(m_pitch) * std::cos(m_yaw)
-	};
-	Vec3 target = m_position + forward.normalized();
-	Vec3 up{ 0.0f, 1.0f, 0.0f };
-
-	return Mat4::LookAtLH(m_position, target, up);
-}
-
-dx3d::Mat4 dx3d::Camera::getProjectionMatrix() const
-{
-	return m_projectionMatrix;
+    if (input.isKeyDown('W')) m_position += fwd * speed;
+    if (input.isKeyDown('S')) m_position -= fwd * speed;
+    if (input.isKeyDown('D')) m_position += right * speed;
+    if (input.isKeyDown('A')) m_position -= right * speed;
+    if (input.isKeyDown('E') || input.isKeyDown(VK_SPACE)) m_position.y += speed;
+    if (input.isKeyDown('Q') || input.isKeyDown(VK_CONTROL)) m_position.y -= speed;
 }

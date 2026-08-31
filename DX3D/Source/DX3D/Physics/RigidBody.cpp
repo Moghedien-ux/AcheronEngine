@@ -1,10 +1,11 @@
 #include <DX3D/Physics/RigidBody.h>
 #include <DX3D/Physics/GameObject.h>
-#include <cmath>
-#include <algorithm>
+
+using namespace  dx3d;
 
 dx3d::RigidBody::RigidBody(GameObject* owner, const RigidBodyDesc& desc) :
     m_owner(owner),
+    m_mass(desc.mass),
     m_useGravity(desc.useGravity),
     m_isStatic(desc.isStatic),
     m_restitution(desc.restitution),
@@ -13,38 +14,21 @@ dx3d::RigidBody::RigidBody(GameObject* owner, const RigidBodyDesc& desc) :
     m_angularDamping(desc.angularDamping)
 {
     setMass(desc.mass);
+    setStatic(desc.isStatic);
 }
 
 void dx3d::RigidBody::setMass(f32 newMass)
 {
-    m_mass = (std::max)(0.01f, newMass);
-    if (m_isStatic)
-    {
-        m_invMass = 0.0f;
-        m_invInertia = { 0.0f, 0.0f, 0.0f };
-    }
-    else
-    {
-        m_invMass = 1.0f / m_mass;
-        recalculateInertia();
-    }
+    m_mass = (std::max)(0.001f, newMass);
+    m_invMass = m_isStatic ? 0.0f : (1.0f / m_mass);
+    recalculateInertia();
 }
 
 void dx3d::RigidBody::setStatic(bool isStatic)
 {
     m_isStatic = isStatic;
-    if (isStatic)
-    {
-        m_invMass = 0.0f;
-        m_velocity = { 0.0f, 0.0f, 0.0f };
-        m_angularVelocity = { 0.0f, 0.0f, 0.0f };
-        m_invInertia = { 0.0f, 0.0f, 0.0f };
-    }
-    else
-    {
-        m_invMass = 1.0f / m_mass;
-        recalculateInertia();
-    }
+    m_invMass = m_isStatic ? 0.0f : (1.0f / m_mass);
+    recalculateInertia();
 }
 
 void dx3d::RigidBody::recalculateInertia()
@@ -56,18 +40,20 @@ void dx3d::RigidBody::recalculateInertia()
         return;
     }
 
-    // Momente de inerție pentru paralelipiped (w, h, d):
-    f32 w = m_owner->m_scale.x;
-    f32 h = m_owner->m_scale.y;
-    f32 d = m_owner->m_scale.z;
-    f32 m = m_mass;
+    // Cuboid Moment of Inertia tensor:
+    // Ix = 1/12 * m * (h^2 + d^2)
+    // Iy = 1/12 * m * (w^2 + d^2)
+    // Iz = 1/12 * m * (w^2 + h^2)
+    Vec3 size = m_owner->m_scale;
+    f32 factor = (1.0f / 12.0f) * m_mass;
 
-    f32 ix = (1.0f / 12.0f) * m * (h * h + d * d);
-    f32 iy = (1.0f / 12.0f) * m * (w * w + d * d);
-    f32 iz = (1.0f / 12.0f) * m * (w * w + h * h);
+    m_inertia.x = factor * (size.y * size.y + size.z * size.z);
+    m_inertia.y = factor * (size.x * size.x + size.z * size.z);
+    m_inertia.z = factor * (size.x * size.x + size.y * size.y);
 
-    m_inertia = { (std::max)(1e-4f, ix), (std::max)(1e-4f, iy), (std::max)(1e-4f, iz) };
-    m_invInertia = { 1.0f / m_inertia.x, 1.0f / m_inertia.y, 1.0f / m_inertia.z };
+    m_invInertia.x = m_inertia.x > 1e-6f ? (1.0f / m_inertia.x) : 0.0f;
+    m_invInertia.y = m_inertia.y > 1e-6f ? (1.0f / m_inertia.y) : 0.0f;
+    m_invInertia.z = m_inertia.z > 1e-6f ? (1.0f / m_inertia.z) : 0.0f;
 }
 
 void dx3d::RigidBody::applyForce(const Vec3& force)
@@ -87,59 +73,52 @@ void dx3d::RigidBody::applyImpulseAtPoint(const Vec3& impulse, const Vec3& point
     if (m_isStatic || !m_owner) return;
     applyImpulse(impulse);
 
-    // Impuls unghiular: delta_omega = I^-1 * (r x impulse)
     Vec3 r = point - m_owner->m_position;
-    Vec3 angImpulse = Vec3::cross(r, impulse);
-    m_angularVelocity.x += angImpulse.x * m_invInertia.x;
-    m_angularVelocity.y += angImpulse.y * m_invInertia.y;
-    m_angularVelocity.z += angImpulse.z * m_invInertia.z;
+    Vec3 torqueImpulse = Vec3::cross(r, impulse);
+    m_angularVelocity += Vec3{
+        torqueImpulse.x * m_invInertia.x,
+        torqueImpulse.y * m_invInertia.y,
+        torqueImpulse.z * m_invInertia.z
+    };
 }
 
 void dx3d::RigidBody::integrate(f32 dt)
 {
-    if (m_isStatic || !m_owner)
-    {
-        m_force = { 0.0f, 0.0f, 0.0f };
-        m_torque = { 0.0f, 0.0f, 0.0f };
-        return;
-    }
+    if (m_isStatic || !m_owner) return;
 
-    // 1. Integrare viteză liniară: v += (F / m) * dt
-    m_velocity += m_force * (m_invMass * dt);
+    // Linear Integration
+    Vec3 acceleration = m_force * m_invMass;
+    m_velocity += acceleration * dt;
 
-    // Amortizare liniară (drag)
-    f32 linDamp = (std::max)(0.0f, 1.0f - m_linearDamping * dt);
-    m_velocity *= linDamp;
-
-    // 2. Integrare poziție: p += v * dt
+    // Linear Damping
+    m_velocity *= std::clamp(1.0f - m_linearDamping * dt, 0.0f, 1.0f);
     m_owner->m_position += m_velocity * dt;
 
-    // 3. Integrare viteză unghiulară: omega += (Torque * invInertia) * dt
-    m_angularVelocity.x += m_torque.x * m_invInertia.x * dt;
-    m_angularVelocity.y += m_torque.y * m_invInertia.y * dt;
-    m_angularVelocity.z += m_torque.z * m_invInertia.z * dt;
+    // Angular Integration
+    Vec3 angularAccel = {
+        m_torque.x * m_invInertia.x,
+        m_torque.y * m_invInertia.y,
+        m_torque.z * m_invInertia.z
+    };
+    m_angularVelocity += angularAccel * dt;
 
-    // Amortizare unghiulară
-    f32 angDamp = (std::max)(0.0f, 1.0f - m_angularDamping * dt);
-    m_angularVelocity *= angDamp;
-
-    // 4. Integrare rotație
+    // Angular Damping
+    m_angularVelocity *= std::clamp(1.0f - m_angularDamping * dt, 0.0f, 1.0f);
     m_owner->m_rotation += m_angularVelocity * dt;
 
-    // Resetare forțe per cadru
+    // Reset accumulated forces & torques
     m_force = { 0.0f, 0.0f, 0.0f };
     m_torque = { 0.0f, 0.0f, 0.0f };
 }
 
-dx3d::f32 dx3d::RigidBody::getKineticEnergy() const
+f32 dx3d::RigidBody::getKineticEnergy() const
 {
     if (m_isStatic) return 0.0f;
-    f32 vSq = m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y + m_velocity.z * m_velocity.z;
-    f32 linKE = 0.5f * m_mass * vSq;
-    f32 rotKE = 0.5f * (
+    f32 linearKE = 0.5f * m_mass * m_velocity.lengthSq();
+    f32 angularKE = 0.5f * (
         m_inertia.x * m_angularVelocity.x * m_angularVelocity.x +
         m_inertia.y * m_angularVelocity.y * m_angularVelocity.y +
         m_inertia.z * m_angularVelocity.z * m_angularVelocity.z
     );
-    return linKE + rotKE;
+    return linearKE + angularKE;
 }

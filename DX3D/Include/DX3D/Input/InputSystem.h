@@ -1,45 +1,36 @@
 #pragma once
 #include <DX3D/Core/Base.h>
 #include <DX3D/Core/Core.h>
-#include <unordered_map>
 #include <Windows.h>
 
 namespace dx3d
 {
-    struct Point
-    {
-        i32 x{ 0 }, y{ 0 };
-    };
-
     class InputSystem final : public Base
     {
     public:
         explicit InputSystem(const BaseDesc& desc);
-        ~InputSystem() = default;
+        virtual ~InputSystem() override = default;
 
         void update();
+        void setCursorPosition(const Point& point);
 
-        bool isKeyDown(int keyCode) const;
-        bool isKeyUp(int keyCode) const;
+        bool isKeyDown(i32 keyCode) const;
+        bool isKeyUp(i32 keyCode) const;
 
-        bool isMouseButtonDown(int button) const; // 0 = Left, 1 = Right, 2 = Middle
-        Point getMousePosition() const;
-        Point getMouseDelta() const;
-
-        // Called by Window message loop
-        void onKeyDown(int keyCode);
-        void onKeyUp(int keyCode);
-        void onMouseMove(i32 x, i32 y);
-        void onMouseDown(int button);
-        void onMouseUp(int button);
+        bool isMouseButtonDown(i32 button) const; // 0: Left, 1: Right, 2: Middle
+        Point getMousePosition() const { return m_currentMousePos; }
+        Point getMouseDelta() const { return m_mouseDelta; }
 
     private:
-        bool m_keys[256]{ false };
-        bool m_prevKeys[256]{ false };
-        bool m_mouseButtons[3]{ false };
-        Point m_currentMousePos{};
-        Point m_prevMousePos{};
-        Point m_mouseDelta{};
+        u8 m_keysStates[256]{ 0 };
+        u8 m_oldKeysStates[256]{ 0 };
+
+        Point m_currentMousePos{ 0, 0 };
+        Point m_oldMousePos{ 0, 0 };
+        Point m_mouseDelta{ 0, 0 };
         bool m_firstMouseMove{ true };
     };
+
+    void SetGlobalInputSystem(InputSystem* input);
+    InputSystem* GetGlobalInputSystem();
 }

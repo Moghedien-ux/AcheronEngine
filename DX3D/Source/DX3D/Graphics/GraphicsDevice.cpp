@@ -1,85 +1,121 @@
 #include <DX3D/Graphics/GraphicsDevice.h>
-#include <DX3D/Graphics/SwapChain.h>
-#include <DX3D/Graphics/GraphicsLogUtils.h>
 #include <DX3D/Graphics/DeviceContext.h>
-#include <DX3D/Graphics/ShaderBinary.h>
-#include <DX3D/Graphics/GraphicsPipelineState.h>
-#include <DX3D/Graphics/VertexBuffer.h>
-#include <DX3D/Graphics/IndexBuffer.h>
-#include <DX3D/Graphics/ConstantBuffer.h>
+#include <DX3D/Graphics/GraphicsLogUtils.h>
+#include <d3dcompiler.h>
 
-using namespace dx3d;
-
-dx3d::GraphicsDevice::GraphicsDevice(const GraphicsDeviceDesc& desc) : Base(desc.base)
+dx3d::GraphicsDevice::GraphicsDevice(const GraphicsDeviceDesc& desc) :
+    Base(desc.base)
 {
-	D3D_FEATURE_LEVEL featureLevel{};
-	UINT createDeviceFlags{};
-
-#ifdef _DEBUG
-	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    UINT createDeviceFlags = 0;
+#if defined(_DEBUG)
+    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	DX3DGraphicsLogThrowOnFail(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, NULL, 0, D3D11_SDK_VERSION,
-		&m_d3dDevice, &featureLevel, &m_d3dContext),
-		"Direct3D11 initialization failed.");
+    D3D_FEATURE_LEVEL featureLevels[] = {
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0,
+    };
+    D3D_FEATURE_LEVEL featureLevel;
 
-	DX3DGraphicsLogThrowOnFail(m_d3dDevice->QueryInterface(IID_PPV_ARGS(&m_dxgiDevice)),
-		"QueryInterface failed to receive IDXGIDevice");
+    DX3DGraphicsLogThrowOnFail(
+        D3D11CreateDevice(
+            nullptr,
+            D3D_DRIVER_TYPE_HARDWARE,
+            nullptr,
+            createDeviceFlags,
+            featureLevels,
+            ARRAYSIZE(featureLevels),
+            D3D11_SDK_VERSION,
+            &m_device,
+            &featureLevel,
+            &m_context
+        ),
+        "D3D11CreateDevice failed."
+    );
 
-	DX3DGraphicsLogThrowOnFail(m_dxgiDevice->GetParent(IID_PPV_ARGS(&m_dxgiAdapter)),
-		"GetParent failed to receive IDXGIAdapter");
-
-	DX3DGraphicsLogThrowOnFail(m_dxgiAdapter->GetParent(IID_PPV_ARGS(&m_dxgiFactory)),
-		"GetParent failed to receive IDXGIFactory");
+    m_deviceContext = std::make_unique<DeviceContext>(DeviceContextDesc{ { desc.base, *m_device.Get() }, m_context });
 }
 
-dx3d::GraphicsDevice::~GraphicsDevice()
-{}
-
-SwapChainPtr dx3d::GraphicsDevice::createSwapChain(const SwapChainDesc& desc) const
+dx3d::ShaderBinary dx3d::GraphicsDevice::compileShader(
+    const std::wstring& filePath,
+    const std::string& entryPoint,
+    const std::string& targetProfile)
 {
-	return std::make_shared<SwapChain>(desc, getGraphicsResourceDesc());
+    Microsoft::WRL::ComPtr<ID3DBlob> blob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+    UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined(_DEBUG)
+    compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+    compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+    // Try multiple candidate relative paths so it loads regardless of working directory
+    std::vector<std::wstring> candidatePaths = {
+        filePath,
+        L"DX3D/Shaders/" + filePath,
+        L"Shaders/" + filePath,
+        L"../DX3D/Shaders/" + filePath,
+        L"../../DX3D/Shaders/" + filePath
+    };
+
+    size_t lastSlash = filePath.find_last_of(L"/\\");
+    if (lastSlash != std::wstring::npos)
+    {
+        std::wstring filename = filePath.substr(lastSlash + 1);
+        candidatePaths.push_back(filename);
+        candidatePaths.push_back(L"Shaders/" + filename);
+        candidatePaths.push_back(L"DX3D/Shaders/" + filename);
+        candidatePaths.push_back(L"../DX3D/Shaders/" + filename);
+        candidatePaths.push_back(L"../../DX3D/Shaders/" + filename);
+    }
+
+    HRESULT hr = E_FAIL;
+    for (const auto& path : candidatePaths)
+    {
+        errorBlob.Reset();
+        hr = D3DCompileFromFile(
+            path.c_str(),
+            nullptr,
+            D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            entryPoint.c_str(),
+            targetProfile.c_str(),
+            compileFlags,
+            0,
+            &blob,
+            &errorBlob
+        );
+
+        if (SUCCEEDED(hr))
+        {
+            break;
+        }
+        else if (hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) && hr != HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+        {
+            // Found the file, but compilation failed due to HLSL code syntax
+            break;
+        }
+    }
+
+    if (FAILED(hr))
+    {
+        if (errorBlob)
+        {
+            const char* compileErrors = static_cast<const char*>(errorBlob->GetBufferPointer());
+            DX3DLogError("Shader compilation error: " + std::string(compileErrors));
+        }
+        else
+        {
+            DX3DLogError("Shader file not found. Checked candidate paths for: " +
+                std::string(filePath.begin(), filePath.end()));
+        }
+        DX3DGraphicsLogThrowOnFail(hr, "Shader compilation failed.");
+    }
+
+    return ShaderBinary(blob);
 }
 
-DeviceContextPtr dx3d::GraphicsDevice::createDeviceContext() const
-{
-	return std::make_shared<DeviceContext>(getGraphicsResourceDesc());
-}
-
-ShaderBinaryPtr dx3d::GraphicsDevice::compileShader(const ShaderCompileDesc& desc)
-{
-	return std::make_shared<ShaderBinary>(desc, getGraphicsResourceDesc());
-}
-
-GraphicsPilepineStatePtr dx3d::GraphicsDevice::createGraphicsPipelineState(const GraphicsPipelineStateDesc& desc)
-{
-	return std::make_shared<GraphicsPipelineState>(desc, getGraphicsResourceDesc());
-}
-
-VertexBufferPtr dx3d::GraphicsDevice::createVertexBuffer(const VertexBufferDesc& desc)
-{
-	return std::make_shared<VertexBuffer>(desc, getGraphicsResourceDesc());
-}
-
-IndexBufferPtr dx3d::GraphicsDevice::createIndexBuffer(const IndexBufferDesc& desc)
-{
-	return std::make_shared<IndexBuffer>(desc, getGraphicsResourceDesc());
-}
-
-ConstantBufferPtr dx3d::GraphicsDevice::createConstantBuffer(const ConstantBufferDesc& desc)
-{
-	return std::make_shared<ConstantBuffer>(desc, getGraphicsResourceDesc());
-}
-
-void dx3d::GraphicsDevice::executeCommandList(DeviceContext& context)
-{
-	Microsoft::WRL::ComPtr<ID3D11CommandList> list{};
-	DX3DGraphicsLogThrowOnFail(context.m_context->FinishCommandList(false, &list),
-		"FinishCommandList failed.");
-	m_d3dContext->ExecuteCommandList(list.Get(), false);
-}
-
-GraphicsResourceDesc dx3d::GraphicsDevice::getGraphicsResourceDesc() const noexcept
-{
-	return { {m_logger}, shared_from_this(), *m_d3dDevice.Get(), *m_dxgiFactory.Get() };
-}
+dx3d::GraphicsDevice::~GraphicsDevice() = default;

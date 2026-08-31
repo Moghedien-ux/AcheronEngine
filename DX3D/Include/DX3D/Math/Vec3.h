@@ -4,31 +4,47 @@
 
 namespace dx3d
 {
-    class Vec3
+    struct Vec3
     {
-    public:
-        f32 x{ 0.0f }, y{ 0.0f }, z{ 0.0f };
+        f32 x{ 0.0f };
+        f32 y{ 0.0f };
+        f32 z{ 0.0f };
 
         Vec3() = default;
-        Vec3(f32 x, f32 y, f32 z) : x(x), y(y), z(z) {}
+        Vec3(f32 _x, f32 _y, f32 _z) : x(_x), y(_y), z(_z) {}
 
-        Vec3 operator+(const Vec3& rhs) const { return { x + rhs.x, y + rhs.y, z + rhs.z }; }
-        Vec3 operator-(const Vec3& rhs) const { return { x - rhs.x, y - rhs.y, z - rhs.z }; }
-        Vec3 operator*(const f32 scalar) const { return{x * scalar, y * scalar, z * scalar}; }
-        Vec3 operator/(const f32 scalar) const { return{ x / scalar, y / scalar, z / scalar }; }
+        Vec3 operator+(const Vec3& other) const { return { x + other.x, y + other.y, z + other.z }; }
+        Vec3 operator-(const Vec3& other) const { return { x - other.x, y - other.y, z - other.z }; }
+        Vec3 operator*(f32 scalar) const { return { x * scalar, y * scalar, z * scalar }; }
+        Vec3 operator/(f32 scalar) const { return { x / scalar, y / scalar, z / scalar }; }
 
-        Vec3& operator+=(const Vec3& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; return *this; }
-        Vec3& operator-=(const Vec3& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; return *this; }
-        Vec3& operator*=(f32 scalar) { x *= scalar; y *= scalar; z *= scalar; return *this; }
+        Vec3& operator+=(const Vec3& other)
+        {
+            x += other.x; y += other.y; z += other.z;
+            return *this;
+        }
 
-        f32 length() const { return std::sqrt(x * x + y * y + z * z); }
+        Vec3& operator-=(const Vec3& other)
+        {
+            x -= other.x; y -= other.y; z -= other.z;
+            return *this;
+        }
+
+        Vec3& operator*=(f32 scalar)
+        {
+            x *= scalar; y *= scalar; z *= scalar;
+            return *this;
+        }
+
+        f32 lengthSq() const { return x * x + y * y + z * z; }
+        f32 length() const { return std::sqrt(lengthSq()); }
 
         Vec3 normalized() const
         {
             f32 len = length();
-            if (len > 0.00001f)
-                return *this / len;
-            return *this;
+            if (len > 1e-6f)
+                return { x / len, y / len, z / len };
+            return { 0.0f, 0.0f, 0.0f };
         }
 
         static f32 dot(const Vec3& a, const Vec3& b)
@@ -45,4 +61,6 @@ namespace dx3d
             };
         }
     };
+
+    inline Vec3 operator*(f32 scalar, const Vec3& v) { return v * scalar; }
 }

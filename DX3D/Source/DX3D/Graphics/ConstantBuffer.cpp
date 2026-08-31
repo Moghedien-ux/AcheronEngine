@@ -1,39 +1,25 @@
 #include <DX3D/Graphics/ConstantBuffer.h>
+#include <DX3D/Graphics/DeviceContext.h>
 #include <DX3D/Graphics/GraphicsLogUtils.h>
 
-dx3d::ConstantBuffer::ConstantBuffer(const ConstantBufferDesc& desc, const GraphicsResourceDesc& gDesc) :
-    GraphicsResource(gDesc), m_size(desc.bufferSize)
+dx3d::ConstantBuffer::ConstantBuffer(const ConstantBufferDesc& desc) :
+    GraphicsResource(desc.gResource),
+    m_bufferSize(desc.bufferSize)
 {
-    if (!desc.bufferSize)
-        DX3DLogThrowInvalidArgs("Constant buffer size cannot be zero.");
+    D3D11_BUFFER_DESC bDesc{};
+    bDesc.Usage = D3D11_USAGE_DEFAULT;
+    // Constant buffers must be a multiple of 16 bytes
+    bDesc.ByteWidth = (desc.bufferSize + 15) & ~15;
+    bDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bDesc.CPUAccessFlags = 0;
 
-    ui32 alignedSize = (desc.bufferSize + 15) & ~15;
-    m_size = alignedSize;
-
-    D3D11_BUFFER_DESC buffDesc{};
-    buffDesc.ByteWidth = alignedSize;
-    buffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    buffDesc.Usage = D3D11_USAGE_DEFAULT;
-    buffDesc.CPUAccessFlags = 0;
-
-    if (desc.bufferData)
-    {
-        D3D11_SUBRESOURCE_DATA initData{};
-        initData.pSysMem = desc.bufferData;
-        DX3DGraphicsLogThrowOnFail(m_device.CreateBuffer(&buffDesc, &initData, &m_buffer),
-            "CreateBuffer (ConstantBuffer with data) failed.");
-    }
-    else
-    {
-        DX3DGraphicsLogThrowOnFail(m_device.CreateBuffer(&buffDesc, nullptr, &m_buffer),
-            "CreateBuffer (ConstantBuffer empty) failed.");
-    }
+    DX3DGraphicsLogThrowOnFail(
+        m_device.CreateBuffer(&bDesc, nullptr, &m_buffer),
+        "CreateBuffer for ConstantBuffer failed."
+    );
 }
 
-void dx3d::ConstantBuffer::update(const void* bufferData, ui32 bufferSize)
+void dx3d::ConstantBuffer::update(DeviceContext& context, const void* data)
 {
-    if (!bufferData) return;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext> immContext;
-    m_device.GetImmediateContext(&immContext);
-    immContext->UpdateSubresource(m_buffer.Get(), 0, nullptr, bufferData, 0, 0);
+    context.getD3DContext()->UpdateSubresource(m_buffer.Get(), 0, nullptr, data, 0, 0);
 }
