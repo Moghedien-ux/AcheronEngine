@@ -1,0 +1,107 @@
+AcheronEngine (C:\Users\raulr\Desktop\Projects\CLion\AcheronEngine)
+|- DX3D
+|   |- Include
+|   |    |- DX3D
+|   |    |   |- Camera
+|   |    |   |    |- Camera.h
+|   |    |   |- Core
+|   |    |   |   |- Base.h
+|   |    |   |   |- Common.h
+|   |    |   |   |- Core.h
+|   |    |   |   |- Logger.h
+|   |    |   |- Game
+|   |    |   |   |- Display.h
+|   |    |   |   |- Game.h
+|   |    |   |- Geometry           <-- [NEW Unreal Mesh System]
+|   |    |   |   |- Vertex.h
+|   |    |   |   |- Mesh.h
+|   |    |   |   |- PrimitiveFactory.h
+|   |    |   |   |- MeshLoader.h
+|   |    |   |- Input
+|   |    |   |    |- InputSystem.h
+|   |    |   |- Math               <-- [NEW Unreal Transform & Quat System]
+|   |    |   |   |- Vec2.h
+|   |    |   |   |- Vec3.h
+|   |    |   |   |- Vec4.h
+|   |    |   |   |- Quat.h
+|   |    |   |   |- Mat4.h
+|   |    |   |   |- Transform.h
+|   |    |   |   |- Ray.h
+|   |    |   |- Physics
+|   |    |   |     |- RigidBody.h
+|   |    |   |     |- PhysicsEngine.h
+|   |    |   |     |- Raycast.h
+|   |    |   |- Scene              <-- [NEW Unreal Actor-Component Hierarchy]
+|   |    |   |   |- Component.h
+|   |    |   |   |- MeshComponent.h
+|   |    |   |   |- Actor.h
+|   |    |   |- UI
+|   |    |   |  |- DetailsPanel.h
+|   |    |   |  |- ImGuiLayer.h
+|   |    |   |  |- WorldOutliner.h
+|   |    |   |- Window
+|   |    |   |    |- Window.h
+|   |    |   |- All.h
+|   |- Shaders
+|   |     |- CubeShader.hlsl
+|   |     |- MeshShader.hlsl      <-- [NEW PBR/Blinn-Phong Shader]
+|   |- Source
+|   |    |- DX3D
+|   |    |   |- Camera
+|   |    |   |    |- Camera.cpp
+|   |    |   |- Core
+|   |    |   |   |- Base.cpp
+|   |    |   |   |- Logger.cpp
+|   |    |   |- Game
+|   |    |   |   |- Display.cpp
+|   |    |   |   |- Game.cpp
+|   |    |   |- Geometry           <-- [NEW Mesh Implementations]
+|   |    |   |   |- Mesh.cpp
+|   |    |   |   |- PrimitiveFactory.cpp
+|   |    |   |   |- MeshLoader.cpp
+|   |    |   |- Graphics
+|   |    |   |      |- ConstantBuffer.cpp
+|   |    |   |      |- ConstantBuffer.h
+|   |    |   |      |- DeviceContext.cpp
+|   |    |   |      |- DeviceContext.h
+|   |    |   |      |- GraphicsDevice.cpp
+|   |    |   |      |- GraphicsDevice.h
+|   |    |   |      |- GraphicsEngine.cpp
+|   |    |   |      |- GraphicsEngine.h
+|   |    |   |      |- GraphicsLogUtils.h
+|   |    |   |      |- GraphicsPipelineState.cpp
+|   |    |   |      |- GraphicsPipelineState.h
+|   |    |   |      |- GraphicsResource.h
+|   |    |   |      |- GraphicsUtils.h
+|   |    |   |      |- HighlightPass.cpp
+|   |    |   |      |- HighlightPass.h
+|   |    |   |      |- IndexBuffer.cpp
+|   |    |   |      |- IndexBuffer.h
+|   |    |   |      |- ShaderBinary.h
+|   |    |   |      |- SwapChain.cpp
+|   |    |   |      |- SwapChain.h
+|   |    |   |      |- VertexBuffer.cpp
+|   |    |   |      |- VertexBuffer.h
+|   |    |   |- Input
+|   |    |   |    |- InputSystem.cpp
+|   |    |   |- Math
+|   |    |   |    |- Transform.cpp   <-- [NEW Transform Hierarchy Implementation]
+|   |    |   |- Physics
+|   |    |   |     |- PhysicsEngine.cpp
+|   |    |   |     |- Raycast.cpp
+|   |    |   |     |- RigidBody.cpp
+|   |    |   |- Scene              <-- [NEW Scene Implementations]
+|   |    |   |     |- Actor.cpp
+|   |    |   |     |- MeshComponent.cpp
+|   |    |   |- UI
+|   |    |   |  |- DetailsPanel.cpp
+|   |    |   |  |- ImGuiLayer.cpp
+|   |    |   |  |- WorldOutliner.cpp
+|   |    |   |- Window
+|   |    |   |     |- Win32
+|   |    |   |     |    |- Win32Window.cpp
+|- Game
+|   |- main.cpp
+|- imgui
+|- CMakeLists.txt
+|- Project.txt
