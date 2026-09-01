@@ -48,7 +48,7 @@ include_directories(
         "${IMGUI_DIR}/backends"
 )
 
-# Engine Core & Physics & Graphics & UI Sources
+# Engine Core, Math, Geometry, Scene, Physics, Graphics & UI Sources
 file(GLOB_RECURSE SOURCES_ENGINE
         "${CMAKE_CURRENT_SOURCE_DIR}/DX3D/Source/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/DX3D/Include/*.h"
@@ -66,7 +66,7 @@ add_executable(${PROJECT_NAME}
         ${SHADERS}
 )
 
-# Link Libraries
+# Link DirectX 11 Libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
         imgui
         d3d11
@@ -83,7 +83,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-# Windows Subsystem and warning flags
+# Compiler warnings and options
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive- /Zc:__cplusplus)
     target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:CONSOLE")

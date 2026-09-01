@@ -1,7 +1,9 @@
 #include <DX3D/Physics/GameObject.h>
 #include <DX3D/Physics/RigidBody.h>
 
-dx3d::GameObject::GameObject(const GameObjectDesc& desc) :
+using namespace dx3d;
+
+GameObject::GameObject(const GameObjectDesc& desc) :
     m_position(desc.position),
     m_rotation(desc.rotation),
     m_scale(desc.scale),
@@ -12,7 +14,7 @@ dx3d::GameObject::GameObject(const GameObjectDesc& desc) :
     m_rigidBody->recalculateInertia();
 }
 
-dx3d::Mat4 dx3d::GameObject::getWorldMatrix() const
+Mat4 GameObject::getWorldMatrix() const
 {
     Mat4 s  = Mat4::Scale(m_scale);
     Mat4 rx = Mat4::RotationX(m_rotation.x);
@@ -23,7 +25,7 @@ dx3d::Mat4 dx3d::GameObject::getWorldMatrix() const
     return s * rx * ry * rz * t;
 }
 
-void dx3d::GameObject::setScale(const Vec3& newScale)
+void GameObject::setScale(const Vec3& newScale)
 {
     m_scale = newScale;
     if (m_rigidBody)

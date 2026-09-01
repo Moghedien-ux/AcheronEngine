@@ -24,12 +24,12 @@ namespace dx3d
         explicit GameObject(const GameObjectDesc& desc = {});
         virtual ~GameObject() = default;
 
-        // Transform Properties
+        // Transform & Entity Properties
         Vec3 m_position{ 0.0f, 0.0f, 0.0f };
         Vec3 m_rotation{ 0.0f, 0.0f, 0.0f };
         Vec3 m_scale{ 1.0f, 1.0f, 1.0f };
         Vec3 m_color{ 0.2f, 0.6f, 1.0f };
-        std::string m_name;
+        std::string m_name{ "GameObject" };
         bool m_active{ true };
         bool m_selected{ false };
 

@@ -21,7 +21,7 @@ namespace dx3d
     class RigidBody
     {
     public:
-        explicit RigidBody(GameObject* owner, const RigidBodyDesc& desc = {});
+        explicit RigidBody(GameObject* owner = nullptr, const RigidBodyDesc& desc = {});
         ~RigidBody() = default;
 
         // Physical Properties
@@ -55,6 +55,8 @@ namespace dx3d
 
         void integrate(f32 dt);
         f32 getKineticEnergy() const;
+
+        GameObject* getOwner() const { return m_owner; }
 
     private:
         GameObject* m_owner{ nullptr };
