@@ -108,7 +108,6 @@ namespace dx3d
             return res;
         }
 
-        // Direct Transform Matrix (Scale * Rotation * Translation in row-vector DirectX notation)
         static Mat4 TransformMatrix(const Vec3& translation, const Quat& rotation, const Vec3& scale)
         {
             Mat4 s = Mat4::Scale(scale);

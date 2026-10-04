@@ -16,25 +16,20 @@ namespace dx3d
         explicit Actor(const std::string& name = "Actor");
         virtual ~Actor() = default;
 
-        // Transform
         Transform& getTransform() { return m_transform; }
         const Transform& getTransform() const { return m_transform; }
 
-        // Hierarchy
         void attachTo(Actor* parent, bool keepWorld = true);
         void detach();
         Actor* getParent() const { return m_parentActor; }
         const std::vector<Actor*>& getChildren() const { return m_childActors; }
 
-        // Mesh & Render Component
         void setMeshComponent(MeshComponentPtr meshComp) { m_meshComponent = meshComp; }
         MeshComponentPtr getMeshComponent() const { return m_meshComponent; }
 
-        // Physics Component
         void setRigidBody(std::shared_ptr<RigidBody> rb) { m_rigidBody = rb; }
         std::shared_ptr<RigidBody> getRigidBody() const { return m_rigidBody; }
 
-        // Identification & State
         const std::string& getName() const { return m_name; }
         void setName(const std::string& name) { m_name = name; }
         bool isActive() const { return m_active; }

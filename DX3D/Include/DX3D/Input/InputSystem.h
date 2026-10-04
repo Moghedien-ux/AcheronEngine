@@ -17,7 +17,7 @@ namespace dx3d
         bool isKeyDown(i32 keyCode) const;
         bool isKeyUp(i32 keyCode) const;
 
-        bool isMouseButtonDown(i32 button) const; // 0: Left, 1: Right, 2: Middle
+        bool isMouseButtonDown(i32 button) const; // 0: L, 1: R, 2: Mid
         Point getMousePosition() const { return m_currentMousePos; }
         Point getMouseDelta() const { return m_mouseDelta; }
 

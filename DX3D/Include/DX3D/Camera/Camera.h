@@ -27,8 +27,8 @@ namespace dx3d
 
     private:
         Vec3 m_position{ 0.0f, 2.0f, -5.0f };
-        f32 m_yaw{ 0.0f };   // In radians
-        f32 m_pitch{ 0.0f }; // In radians
+        f32 m_yaw{ 0.0f };   // rad. not *
+        f32 m_pitch{ 0.0f }; // rad.
         f32 m_moveSpeed{ 6.0f };
         f32 m_lookSensitivity{ 0.003f };
 

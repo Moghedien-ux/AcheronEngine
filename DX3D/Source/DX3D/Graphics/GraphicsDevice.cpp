@@ -53,7 +53,6 @@ dx3d::ShaderBinary dx3d::GraphicsDevice::compileShader(
     compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-    // Try multiple candidate relative paths so it loads regardless of working directory
     std::vector<std::wstring> candidatePaths = {
         filePath,
         L"DX3D/Shaders/" + filePath,
@@ -95,7 +94,6 @@ dx3d::ShaderBinary dx3d::GraphicsDevice::compileShader(
         }
         else if (hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) && hr != HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
         {
-            // Found the file, but compilation failed due to HLSL code syntax
             break;
         }
     }
@@ -109,7 +107,6 @@ dx3d::ShaderBinary dx3d::GraphicsDevice::compileShader(
         }
         else
         {
-            // Convert wstring filePath safely to string for logging
             std::string pathNarrow;
             pathNarrow.reserve(filePath.size());
             for (wchar_t wc : filePath)

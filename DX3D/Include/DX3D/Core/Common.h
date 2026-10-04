@@ -8,7 +8,6 @@
 
 namespace dx3d
 {
-    // Constant buffer struct matching shaders (register b0)
     struct ConstantData
     {
         Mat4 world{};

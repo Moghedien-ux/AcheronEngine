@@ -19,8 +19,6 @@ namespace dx3d
             return origin + direction * t;
         }
 
-        // Ray-AABB Intersection test (Slab method)
-        // Returns true if ray intersects axis-aligned box between minBounds and maxBounds
         bool intersectAABB(const Vec3& minBounds, const Vec3& maxBounds, f32& outT) const
         {
             f32 tmin = (minBounds.x - origin.x) / (std::abs(direction.x) > 1e-6f ? direction.x : 1e-6f);

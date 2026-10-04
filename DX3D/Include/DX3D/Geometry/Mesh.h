@@ -58,7 +58,6 @@ namespace dx3d
         void calculateTangents();
         void calculateBounds();
 
-        // GPU Buffer Management
         bool uploadToGPU(const GraphicsResourceDesc& gResource);
         bool uploadToGPU(GraphicsDevice& device, Logger& logger);
         void setBuffers(VertexBufferPtr vertexBuffer, IndexBufferPtr indexBuffer);

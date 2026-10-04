@@ -74,7 +74,7 @@ MeshPtr MeshLoader::LoadFromOBJString(const std::string& objSource, const std::s
         {
             f32 u, v;
             ss >> u >> v;
-            texCoords.push_back({ u, 1.0f - v }); // Flip V for DirectX
+            texCoords.push_back({ u, 1.0f - v });
         }
         else if (prefix == "vn")
         {
@@ -114,7 +114,6 @@ MeshPtr MeshLoader::LoadFromOBJString(const std::string& objSource, const std::s
                 faceKeys.push_back(key);
             }
 
-            // Triangulate face polygon (Fan triangulation)
             for (size_t i = 1; i + 1 < faceKeys.size(); ++i)
             {
                 VertexKey triKeys[3] = { faceKeys[0], faceKeys[i], faceKeys[i + 1] };

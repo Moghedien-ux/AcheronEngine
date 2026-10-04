@@ -125,7 +125,6 @@ void Mesh::calculateTangents()
         }
     }
 
-    // Gram-Schmidt orthogonalization
     for (auto& v : m_vertices)
     {
         Vec3 n = v.normal;

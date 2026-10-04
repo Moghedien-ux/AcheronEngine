@@ -39,10 +39,8 @@ void dx3d::PhysicsEngine::resolveGroundCollision(GameObject& obj)
 
     if (bottomY < m_groundY)
     {
-        // Positional correction
         obj.m_position.y = m_groundY + halfHeight;
 
-        // Bounce response
         if (rb->m_velocity.y < 0.0f)
         {
             if (std::abs(rb->m_velocity.y) < 0.2f)
@@ -54,7 +52,6 @@ void dx3d::PhysicsEngine::resolveGroundCollision(GameObject& obj)
                 rb->m_velocity.y = -rb->m_velocity.y * rb->m_restitution;
             }
 
-            // Ground friction damping
             rb->m_velocity.x *= (1.0f - rb->m_friction * 0.1f);
             rb->m_velocity.z *= (1.0f - rb->m_friction * 0.1f);
             rb->m_angularVelocity *= 0.95f;
@@ -82,7 +79,6 @@ void dx3d::PhysicsEngine::resolveObjectToBoxCollision(GameObject& a, GameObject&
 
     if (overlap.x > 0.0f && overlap.y > 0.0f && overlap.z > 0.0f)
     {
-        // Collision detected along minimum penetration axis
         Vec3 normal{ 0.0f, 1.0f, 0.0f };
         f32 minOverlap = overlap.y;
 
@@ -101,7 +97,6 @@ void dx3d::PhysicsEngine::resolveObjectToBoxCollision(GameObject& a, GameObject&
             normal = { 0.0f, delta.y > 0.0f ? 1.0f : -1.0f, 0.0f };
         }
 
-        // Positional correction
         f32 totalInvMass = rba->m_invMass + rbb->m_invMass;
         if (totalInvMass > 1e-6f)
         {
@@ -110,7 +105,6 @@ void dx3d::PhysicsEngine::resolveObjectToBoxCollision(GameObject& a, GameObject&
             if (!rbb->m_isStatic) b.m_position += separation * rbb->m_invMass;
         }
 
-        // Relative velocity
         Vec3 relVel = rbb->m_velocity - rba->m_velocity;
         f32 velAlongNormal = Vec3::dot(relVel, normal);
 
@@ -128,13 +122,11 @@ void dx3d::PhysicsEngine::resolveObjectToBoxCollision(GameObject& a, GameObject&
 
 void dx3d::PhysicsEngine::update(f32 deltaTime)
 {
-    // Fixed sub-stepping for stability
     const i32 subSteps = 4;
     const f32 subDt = std::clamp(deltaTime, 0.001f, 0.05f) / static_cast<f32>(subSteps);
 
     for (i32 step = 0; step < subSteps; ++step)
     {
-        // 1. Apply gravity and integrate velocities
         for (auto& obj : m_objects)
         {
             if (!obj || !obj->m_active) continue;
@@ -149,7 +141,6 @@ void dx3d::PhysicsEngine::update(f32 deltaTime)
             }
         }
 
-        // 2. Resolve Ground Plane Collisions
         if (m_enableGroundPlane)
         {
             for (auto& obj : m_objects)
@@ -161,7 +152,6 @@ void dx3d::PhysicsEngine::update(f32 deltaTime)
             }
         }
 
-        // 3. Resolve Box-to-Box Pairwise Collisions
         for (size_t i = 0; i < m_objects.size(); ++i)
         {
             for (size_t j = i + 1; j < m_objects.size(); ++j)

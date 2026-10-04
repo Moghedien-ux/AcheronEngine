@@ -20,7 +20,6 @@ namespace dx3d
 
         static Quat Identity() { return Quat(0.0f, 0.0f, 0.0f, 1.0f); }
 
-        // Construct from Euler angles in radians (Pitch=X, Yaw=Y, Roll=Z)
         static Quat FromEuler(f32 pitch, f32 yaw, f32 roll)
         {
             f32 p = pitch * 0.5f;
@@ -52,24 +51,23 @@ namespace dx3d
             return Quat(normAxis.x * s, normAxis.y * s, normAxis.z * s, std::cos(halfAngle));
         }
 
-        // Convert Quaternion back to Euler angles in Radians (Pitch, Yaw, Roll)
         Vec3 toEuler() const
         {
             Vec3 euler;
 
-            // Pitch (x-axis rotation)
+            // Pitch (x)
             f32 sinr_cosp = 2.0f * (w * x + y * z);
             f32 cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
             euler.x = std::atan2(sinr_cosp, cosr_cosp);
 
-            // Yaw (y-axis rotation)
+            // Yaw (y)
             f32 sinp = 2.0f * (w * y - z * x);
             if (std::abs(sinp) >= 1.0f)
                 euler.y = std::copysign(3.14159265f * 0.5f, sinp);
             else
                 euler.y = std::asin(sinp);
 
-            // Roll (z-axis rotation)
+            // Roll (z)
             f32 siny_cosp = 2.0f * (w * z + x * y);
             f32 cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
             euler.z = std::atan2(siny_cosp, cosy_cosp);
@@ -113,7 +111,7 @@ namespace dx3d
             return Identity();
         }
 
-        // Rotates a 3D vector by this quaternion: v' = q * v * q^-1
+        // Rotates by : v' = q * v * q^-1
         Vec3 rotate(const Vec3& v) const
         {
             Vec3 qVec(x, y, z);
@@ -122,7 +120,7 @@ namespace dx3d
             return v + ((uv * w) + uuv) * 2.0f;
         }
 
-        // Spherical Linear Interpolation (SLERP)
+        // (SLERP)
         static Quat slerp(const Quat& a, const Quat& b, f32 t)
         {
             Quat q2 = b;
@@ -136,7 +134,6 @@ namespace dx3d
 
             if (cosTheta > 0.9995f)
             {
-                // Linear interpolation for tiny angles
                 return Quat(
                     a.x + t * (q2.x - a.x),
                     a.y + t * (q2.y - a.y),

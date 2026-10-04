@@ -7,7 +7,7 @@ using namespace dx3d;
 Actor::Actor(const std::string& name) : m_name(name)
 {
     m_meshComponent = std::make_shared<MeshComponent>(this);
-    m_rigidBody = nullptr; // Initialized when physics is added or via setRigidBody()
+    m_rigidBody = nullptr;
 }
 
 void Actor::attachTo(Actor* parent, bool keepWorld)

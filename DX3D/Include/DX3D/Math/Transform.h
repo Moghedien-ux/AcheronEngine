@@ -28,12 +28,10 @@ namespace dx3d
         Vec3 getRotationDegrees() const;
         const Vec3& getScale() const { return m_scale; }
 
-        // Local Direction Vectors
-        Vec3 getForward() const; // +Z forward
-        Vec3 getRight() const;   // +X right
-        Vec3 getUp() const;      // +Y up
+        Vec3 getForward() const;
+        Vec3 getRight() const;
+        Vec3 getUp() const;
 
-        // World Transformations & Hierarchy
         void setParent(Transform* parent, bool keepWorldTransform = true);
         Transform* getParent() const { return m_parent; }
         const std::vector<Transform*>& getChildren() const { return m_children; }

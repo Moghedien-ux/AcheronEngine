@@ -12,8 +12,8 @@ namespace dx3d
         f32 mass = 1.0f;
         bool useGravity = true;
         bool isStatic = false;
-        f32 restitution = 0.5f;  // Bounciness (0.0 = clay, 1.0 = superball)
-        f32 friction = 0.5f;     // Coulomb friction coefficient
+        f32 restitution = 0.5f;
+        f32 friction = 0.5f;
         f32 linearDamping = 0.03f;
         f32 angularDamping = 0.06f;
     };

@@ -52,7 +52,6 @@ void dx3d::WorldOutliner::render(
         }
         ImGui::EndChild();
 
-        // Bottom action bar
         if (selectedObject)
         {
             if (ImGui::Button("Delete Selected", ImVec2(-1, 24)))

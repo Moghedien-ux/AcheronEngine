@@ -40,7 +40,6 @@ PS_INPUT VSMain(VS_INPUT input)
 
 float4 PSMain(PS_INPUT input) : SV_Target
 {
-    // Directional Sunlight
     float3 lightDir = normalize(float3(0.5f, 0.8f, -0.4f));
     float3 N = normalize(input.normal);
     float NdotL = max(0.0f, dot(N, lightDir));
@@ -49,7 +48,6 @@ float4 PSMain(PS_INPUT input) : SV_Target
     float3 ambient = float3(0.25f, 0.28f, 0.32f);
     float3 diffuse = input.color * (ambient + NdotL * 0.75f);
 
-    // If highlighted in Unreal Engine style, blend in an orange border sheen
     if (m_highlightParams.x > 0.5f)
     {
         diffuse = lerp(diffuse, float3(1.0f, 0.55f, 0.1f), 0.25f);

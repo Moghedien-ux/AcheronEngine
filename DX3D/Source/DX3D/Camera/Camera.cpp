@@ -22,7 +22,6 @@ Vec3 dx3d::Camera::getForward() const
     f32 cosYaw   = std::cos(m_yaw);
     f32 sinYaw   = std::sin(m_yaw);
 
-    // Left-handed coordinate system (+Z forward, +X right, +Y up)
     return Vec3{ sinYaw * cosPitch, sinPitch, cosYaw * cosPitch }.normalized();
 }
 
@@ -46,14 +45,12 @@ Mat4 dx3d::Camera::getViewMatrix() const
 
 void dx3d::Camera::update(const InputSystem& input, f32 deltaTime)
 {
-    // Mouse Look when Right-Click held down (Unreal Engine viewport standard)
     if (input.isMouseButtonDown(1))
     {
         Point delta = input.getMouseDelta();
         m_yaw += delta.x * m_lookSensitivity;
         m_pitch -= delta.y * m_lookSensitivity;
 
-        // Clamp pitch to avoid gimbal flip
         m_pitch = std::clamp(m_pitch, -1.55f, 1.55f);
     }
 

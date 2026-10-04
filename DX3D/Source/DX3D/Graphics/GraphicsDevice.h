@@ -18,7 +18,7 @@ namespace dx3d
     {
     public:
         explicit GraphicsDevice(const GraphicsDeviceDesc& desc);
-        virtual ~GraphicsDevice() override; // Out-of-line destructor
+        virtual ~GraphicsDevice() override;
 
         ID3D11Device& getD3DDevice() { return *m_device.Get(); }
         ID3D11DeviceContext& getD3DDeviceContext() { return *m_context.Get(); }

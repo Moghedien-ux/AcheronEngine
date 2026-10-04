@@ -8,7 +8,6 @@ dx3d::ConstantBuffer::ConstantBuffer(const ConstantBufferDesc& desc) :
 {
     D3D11_BUFFER_DESC bDesc{};
     bDesc.Usage = D3D11_USAGE_DEFAULT;
-    // Constant buffers must be a multiple of 16 bytes
     bDesc.ByteWidth = (desc.bufferSize + 15) & ~15;
     bDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bDesc.CPUAccessFlags = 0;

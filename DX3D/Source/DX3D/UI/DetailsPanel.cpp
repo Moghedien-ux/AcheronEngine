@@ -12,7 +12,7 @@ void dx3d::DetailsPanel::render(GameObject* selectedObject, Game* gameContext)
     ImGui::SetNextWindowPos(ImVec2(10, 50), ImGuiCond_FirstUseEver);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
-    if (ImGui::Begin("Details (Inspector) - Unreal Style", &m_isOpen, flags))
+    if (ImGui::Begin("Details ", &m_isOpen, flags))
     {
         if (!selectedObject)
         {
@@ -44,7 +44,6 @@ void dx3d::DetailsPanel::render(GameObject* selectedObject, Game* gameContext)
             return;
         }
 
-        // Header: Actor Name and Active state
         char nameBuffer[64];
         strncpy_s(nameBuffer, selectedObject->m_name.c_str(), sizeof(nameBuffer));
         if (ImGui::InputText("Actor Name", nameBuffer, sizeof(nameBuffer)))
@@ -57,25 +56,21 @@ void dx3d::DetailsPanel::render(GameObject* selectedObject, Game* gameContext)
         ImGui::Spacing();
         ImGui::Separator();
 
-        // 1. Transform Component (Location, Rotation, Scale)
         renderTransformSection(selectedObject);
 
         ImGui::Spacing();
         ImGui::Separator();
 
-        // 2. Physics Component (Simulate, Gravity, Weight, Bounciness, Friction)
         renderPhysicsSection(selectedObject);
 
         ImGui::Spacing();
         ImGui::Separator();
 
-        // 3. Material & Color Component
         renderMaterialSection(selectedObject);
 
         ImGui::Spacing();
         ImGui::Separator();
 
-        // 4. Quick Actions / Test Impulses
         renderQuickActionsSection(selectedObject, gameContext);
     }
     ImGui::End();
@@ -85,7 +80,6 @@ void dx3d::DetailsPanel::renderTransformSection(GameObject* obj)
 {
     if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        // Position / Location (X, Y, Z)
         ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Location (Meters):");
         float pos[3] = { obj->m_position.x, obj->m_position.y, obj->m_position.z };
         if (ImGui::DragFloat3("##Location", pos, 0.05f, -100.0f, 100.0f, "%.2f m"))
@@ -93,7 +87,6 @@ void dx3d::DetailsPanel::renderTransformSection(GameObject* obj)
             obj->m_position = { pos[0], pos[1], pos[2] };
         }
 
-        // Rotation (Euler angles in degrees)
         ImGui::TextColored(ImVec4(0.4f, 0.9f, 1.0f, 1.0f), "Rotation (Degrees):");
         float rotDeg[3] = {
             obj->m_rotation.x * 57.29578f,
@@ -109,7 +102,6 @@ void dx3d::DetailsPanel::renderTransformSection(GameObject* obj)
             };
         }
 
-        // Scale / Size Adjuster (Unreal Engine style resize)
         ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Scale / Size (Adjuster):");
         ImGui::Checkbox("Uniform Scale", &m_uniformScale);
 
@@ -153,17 +145,14 @@ void dx3d::DetailsPanel::renderPhysicsSection(GameObject* obj)
             return;
         }
 
-        // Static / Movable
         bool isStatic = rb->m_isStatic;
         if (ImGui::Checkbox("Static Object (Immovable)", &isStatic))
         {
             rb->setStatic(isStatic);
         }
 
-        // Gravity Toggle
         ImGui::Checkbox("Enable Gravity (Simulate Gravity)", &rb->m_useGravity);
 
-        // Mass / Weight Adjuster
         ImGui::Spacing();
         ImGui::Text("Mass / Weight (Kg):");
         float mass = rb->m_mass;
@@ -176,7 +165,6 @@ void dx3d::DetailsPanel::renderPhysicsSection(GameObject* obj)
             rb->setMass((std::max)(0.01f, mass));
         }
 
-        // Physical Characteristics (Restitution / Bounciness & Friction)
         ImGui::Spacing();
         ImGui::SliderFloat("Restitution (Bounciness)", &rb->m_restitution, 0.0f, 1.0f, "%.2f");
         ImGui::SliderFloat("Friction Coefficient", &rb->m_friction, 0.0f, 1.0f, "%.2f");
@@ -184,7 +172,6 @@ void dx3d::DetailsPanel::renderPhysicsSection(GameObject* obj)
         ImGui::SliderFloat("Linear Damping", &rb->m_linearDamping, 0.0f, 0.5f, "%.3f");
         ImGui::SliderFloat("Angular Damping", &rb->m_angularDamping, 0.0f, 0.5f, "%.3f");
 
-        // Physics State Monitor
         ImGui::Spacing();
         ImGui::TextDisabled("Live Physics Telemetry:");
         ImGui::Text("Velocity: (%.2f, %.2f, %.2f) m/s", rb->m_velocity.x, rb->m_velocity.y, rb->m_velocity.z);
@@ -203,7 +190,6 @@ void dx3d::DetailsPanel::renderMaterialSection(GameObject* obj)
             obj->m_color = { col[0], col[1], col[2] };
         }
 
-        // Quick color swatches
         ImGui::Text("Presets:");
         ImGui::SameLine();
         if (ImGui::ColorButton("Blue", ImVec4(0.2f, 0.6f, 1.0f, 1.0f), 0, ImVec2(24, 24))) obj->m_color = { 0.2f, 0.6f, 1.0f };

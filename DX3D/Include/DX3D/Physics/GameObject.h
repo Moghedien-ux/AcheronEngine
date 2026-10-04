@@ -13,8 +13,8 @@ namespace dx3d
     {
         std::string name = "CubeActor";
         Vec3 position{ 0.0f, 0.0f, 0.0f };
-        Vec3 rotation{ 0.0f, 0.0f, 0.0f }; // Euler angles in radians
-        Vec3 scale{ 1.0f, 1.0f, 1.0f };    // Dimensions (width, height, depth)
+        Vec3 rotation{ 0.0f, 0.0f, 0.0f };
+        Vec3 scale{ 1.0f, 1.0f, 1.0f };
         Vec3 color{ 0.2f, 0.6f, 1.0f };
     };
 
@@ -33,13 +33,10 @@ namespace dx3d
         bool m_active{ true };
         bool m_selected{ false };
 
-        // Attached Physics Component
         std::shared_ptr<RigidBody> m_rigidBody{};
 
-        // World Matrix: Scale * RotX * RotY * RotZ * Translation
         virtual Mat4 getWorldMatrix() const;
 
-        // Resize Helper: recalculates moment of inertia automatically
         virtual void setScale(const Vec3& newScale);
     };
 

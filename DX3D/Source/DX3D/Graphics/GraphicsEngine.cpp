@@ -23,7 +23,6 @@ dx3d::GraphicsEngine::GraphicsEngine(const GraphicsEngineDesc& desc) :
 
 void dx3d::GraphicsEngine::createCubeGeometry()
 {
-    // Standard 1x1x1 cube vertex data with per-face normals
     Vertex vertices[] = {
         // Front Face (Z = -0.5)
         { { -0.5f, -0.5f, -0.5f }, {  0.0f,  0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } },

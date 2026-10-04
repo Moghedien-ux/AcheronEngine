@@ -48,7 +48,7 @@
 #include <DX3D/Graphics/ConstantBuffer.h>
 #include <DX3D/Graphics/HighlightPass.h>
 
-// UI & Unreal Editor Interface
+// UI
 #include <DX3D/UI/ImGuiLayer.h>
 #include <DX3D/UI/DetailsPanel.h>
 #include <DX3D/UI/WorldOutliner.h>

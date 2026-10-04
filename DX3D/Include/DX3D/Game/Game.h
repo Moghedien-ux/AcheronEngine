@@ -50,7 +50,6 @@ namespace dx3d
         std::unique_ptr<Camera> m_camera{};
         std::unique_ptr<PhysicsEngine> m_physicsEngine{};
 
-        // UI & Editor Subsystems
         std::unique_ptr<ImGuiLayer> m_imguiLayer{};
         std::unique_ptr<DetailsPanel> m_detailsPanel{};
         std::unique_ptr<WorldOutliner> m_worldOutliner{};

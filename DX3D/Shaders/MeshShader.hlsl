@@ -36,7 +36,6 @@ PS_INPUT VSMain(VS_INPUT input)
     float4 viewPos  = mul(worldPos, m_view);
     output.pos      = mul(viewPos, m_proj);
 
-    // Transform normals & tangents to world space
     output.normal    = normalize(mul(float4(input.normal, 0.0f), m_world).xyz);
     output.tangent   = normalize(mul(float4(input.tangent, 0.0f), m_world).xyz);
     output.bitangent = normalize(mul(float4(input.bitangent, 0.0f), m_world).xyz);
@@ -50,17 +49,14 @@ PS_INPUT VSMain(VS_INPUT input)
 
 float4 PSMain(PS_INPUT input) : SV_Target
 {
-    // Directional Sunlight (Unreal Studio Keylight)
     float3 lightDir = normalize(float3(0.5f, 0.8f, -0.4f));
     float3 N = normalize(input.normal);
     float NdotL = max(0.0f, dot(N, lightDir));
 
-    // Secondary Fill Light
     float3 fillLightDir = normalize(float3(-0.4f, 0.3f, 0.5f));
     float fillNdotL = max(0.0f, dot(N, fillLightDir)) * 0.3f;
 
-    // View Direction & Specular Highlight
-    float3 eyePos = float3(0.0f, 3.5f, -8.0f); // Camera approximation
+    float3 eyePos = float3(0.0f, 3.5f, -8.0f);
     float3 V = normalize(eyePos - input.worldPos);
     float3 H = normalize(lightDir + V);
     float NdotH = max(0.0f, dot(N, H));
@@ -68,16 +64,13 @@ float4 PSMain(PS_INPUT input) : SV_Target
     float specPower = (1.0f - roughness) * 64.0f + 4.0f;
     float specular = pow(NdotH, specPower) * (1.0f - roughness);
 
-    // Procedural Grid Texture pattern fallback based on UV
     float2 grid = frac(input.texCoord * 4.0f);
     float checker = (grid.x > 0.03f && grid.y > 0.03f) ? 1.0f : 0.85f;
 
-    // Ambient + Diffuse + Specular
     float3 ambient = float3(0.22f, 0.24f, 0.28f);
     float3 albedo = input.color.rgb * checker;
     float3 diffuse = albedo * (ambient + (NdotL + fillNdotL) * 0.85f) + float3(1, 1, 1) * specular * 0.3f;
 
-    // Unreal Engine Selection Highlight sheen
     if (m_highlightParams.x > 0.5f)
     {
         diffuse = lerp(diffuse, float3(1.0f, 0.55f, 0.1f), 0.28f);

@@ -4,19 +4,16 @@
 dx3d::GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc) :
     GraphicsResource(desc.gResource)
 {
-    // 1. Create Vertex Shader
     DX3DGraphicsLogThrowOnFail(
         m_device.CreateVertexShader(desc.vsBinary.getBufferPointer(), desc.vsBinary.getBufferSize(), nullptr, &m_vs),
         "CreateVertexShader failed."
     );
 
-    // 2. Create Pixel Shader
     DX3DGraphicsLogThrowOnFail(
         m_device.CreatePixelShader(desc.psBinary.getBufferPointer(), desc.psBinary.getBufferSize(), nullptr, &m_ps),
         "CreatePixelShader failed."
     );
 
-    // 3. Create Input Layout for Full Mesh Vertex (Position, Normal, Tangent, Bitangent, UV, Color)
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },

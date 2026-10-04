@@ -15,7 +15,6 @@ namespace dx3d
         void beginFrame();
         void endFrame();
 
-        // Forward Windows messages to ImGui
         static bool handleWin32Message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
     private:

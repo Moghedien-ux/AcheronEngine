@@ -36,12 +36,10 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     m_physicsEngine = std::make_unique<PhysicsEngine>(PhysicsEngineDesc{ BaseDesc{ m_logger }, { 0.0f, -9.81f, 0.0f }, true, 0.0f });
 
-    // Initialize Camera
     m_camera = std::make_unique<Camera>(Vec3{ 0.0f, 3.5f, -8.0f });
     f32 aspect = static_cast<f32>(desc.windowSize.width) / static_cast<f32>(desc.windowSize.height);
     m_camera->setPerspective(1.0472f, aspect, 0.1f, 500.0f);
 
-    // Initialize ImGui UI Subsystems
     HWND hwnd = static_cast<HWND>(m_display->getHandle());
     m_imguiLayer = std::make_unique<ImGuiLayer>(BaseDesc{ m_logger }, hwnd,
         &m_graphicsEngine->getD3DDevice(),
@@ -54,7 +52,6 @@ dx3d::Game::Game(const GameDesc& desc) :
 
     m_worldOutliner = std::make_unique<WorldOutliner>();
 
-    // Initial Scene Cubes: Platform slab + Standard cube + Heavy block + Bouncy cube
     spawnCube({  0.0f, 0.2f, 0.0f }, { 8.0f, 0.4f, 8.0f }, 100.0f, false, { 0.2f, 0.25f, 0.32f });
     m_gameObjects.back()->m_rigidBody->setStatic(true);
     m_gameObjects.back()->m_name = "Platform_Ground";
@@ -94,7 +91,7 @@ void dx3d::Game::spawnCube(const Vec3& pos, const Vec3& scale, f32 mass, bool us
 
     m_gameObjects.push_back(cube);
     m_physicsEngine->addObject(cube);
-    m_selectedObject = cube; // Automatically select newly spawned cube
+    m_selectedObject = cube;
 }
 
 void dx3d::Game::selectObject(GameObjectPtr obj)
@@ -159,36 +156,28 @@ void dx3d::Game::run()
 
 void dx3d::Game::onInternalUpdate(f32 deltaTime)
 {
-    // 1. Update Input
     m_inputSystem->update();
 
-    // 2. Object Picking via Mouse Click
     handleObjectPicking();
 
-    // 3. Update Camera (Right-click drag to look / WASD)
     ImGuiIO& io = ImGui::GetIO();
     if (!io.WantCaptureMouse)
     {
         m_camera->update(*m_inputSystem, deltaTime);
     }
 
-    // 4. Update Physics Simulation
     if (m_isSimulating)
     {
         m_physicsEngine->update(deltaTime);
     }
 
-    // 5. Begin ImGui Frame
     m_imguiLayer->beginFrame();
 
-    // 6. Render Unreal-Style Details Panel & World Outliner
     m_detailsPanel->render(m_selectedObject.get(), this);
     m_worldOutliner->render(m_gameObjects, m_selectedObject, this);
 
-    // 7. Render 3D Scene + Selection Outline
     m_graphicsEngine->renderObjects(m_display->getSwapChain(), *m_camera, m_gameObjects, m_selectedObject.get());
 
-    // 8. End ImGui Frame & Present
     m_imguiLayer->endFrame();
     m_display->getSwapChain().present();
 }

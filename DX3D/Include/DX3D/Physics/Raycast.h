@@ -19,7 +19,6 @@ namespace dx3d
     class Raycast
     {
     public:
-        // Generates a world-space Ray from mouse screen coordinates and camera matrices
         static Ray screenPointToRay(
             i32 screenX, i32 screenY,
             i32 screenWidth, i32 screenHeight,
@@ -27,7 +26,6 @@ namespace dx3d
             const Mat4& projMatrix,
             const Vec3& cameraPosition);
 
-        // Raycasts against all GameObjects in the scene and returns the closest hit
         static RaycastHit pickObject(
             const Ray& ray,
             const std::vector<GameObjectPtr>& objects);

@@ -36,7 +36,7 @@ dx3d::ImGuiLayer::ImGuiLayer(const BaseDesc& desc, HWND hwnd, ID3D11Device* devi
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(device, context);
 
-    DX3DLogInfo("ImGuiLayer Initialized with Unreal Engine 5 Theme.");
+    DX3DLogInfo("ImGuiLayer Initialized");
 }
 
 dx3d::ImGuiLayer::~ImGuiLayer()
@@ -64,7 +64,6 @@ void dx3d::ImGuiLayer::applyUnrealEngineTheme()
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
-    // Unreal Engine 5 Slate Palette
     colors[ImGuiCol_Text]                  = ImVec4(0.92f, 0.93f, 0.94f, 1.00f);
     colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.52f, 0.54f, 1.00f);
     colors[ImGuiCol_WindowBg]              = ImVec4(0.12f, 0.13f, 0.15f, 0.94f);
@@ -77,12 +76,12 @@ void dx3d::ImGuiLayer::applyUnrealEngineTheme()
     colors[ImGuiCol_TitleBg]               = ImVec4(0.09f, 0.10f, 0.11f, 1.00f);
     colors[ImGuiCol_TitleBgActive]         = ImVec4(0.15f, 0.16f, 0.18f, 1.00f);
     colors[ImGuiCol_Button]                = ImVec4(0.20f, 0.22f, 0.26f, 1.00f);
-    colors[ImGuiCol_ButtonHovered]         = ImVec4(0.28f, 0.45f, 0.70f, 1.00f); // Unreal Blue Accent
+    colors[ImGuiCol_ButtonHovered]         = ImVec4(0.28f, 0.45f, 0.70f, 1.00f);
     colors[ImGuiCol_ButtonActive]          = ImVec4(0.18f, 0.38f, 0.62f, 1.00f);
     colors[ImGuiCol_Header]                = ImVec4(0.22f, 0.24f, 0.28f, 1.00f);
     colors[ImGuiCol_HeaderHovered]         = ImVec4(0.28f, 0.32f, 0.38f, 1.00f);
     colors[ImGuiCol_HeaderActive]          = ImVec4(0.35f, 0.40f, 0.48f, 1.00f);
-    colors[ImGuiCol_SliderGrab]            = ImVec4(0.85f, 0.50f, 0.15f, 1.00f); // Unreal Orange Accent
+    colors[ImGuiCol_SliderGrab]            = ImVec4(0.85f, 0.50f, 0.15f, 1.00f);
     colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.95f, 0.60f, 0.20f, 1.00f);
     colors[ImGuiCol_CheckMark]             = ImVec4(0.85f, 0.50f, 0.15f, 1.00f);
 
